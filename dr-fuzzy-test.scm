@@ -4,6 +4,8 @@
 (require test-engine/scheme-tests)
 (require scheme/system)
 
+;; builds up a fake enviroment for testing purposes
+;;
 (define test-directories (list (build-path "test-1/")
                                (build-path "test-2/")
                                (build-path "test-3/")
@@ -54,6 +56,18 @@
 (check-expect (all-files "test-2")
               (list (string->path "test-2/bob.java")))
 
+
+(check-expect (build-path-parts-regex (list "app" "db"))
+              "^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$")
+
+(check-expect (build-file-regex "foo")
+              "^(.*?)(f)([^/]*?)(o)([^/]*?)(o)(.*)$")
+
+(check-expect (make-pattern "")
+              "()")
+
+(check-expect (make-pattern "foo")
+              "(f)([^/]*?)(o)([^/]*?)(o)")
 
 (check-expect (teardown) true)
 ;(check-expect (expand-all-subdirectories)
