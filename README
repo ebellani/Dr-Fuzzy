@@ -1,0 +1,5 @@
+This is an implementation of a gedit snap-open kind of thing for DrScheme.
+I'm using Jamis Buck fuzzy finder[1] as a base for the internal library,
+and the snap open for a GUI template.
+
+[1] http://weblog.jamisbuck.org/2008/10/10/coming-home-to-vim
