@@ -16,12 +16,12 @@
   ;; used in separation of path parts, like
   ;; app/db/ will get you
   ;; "^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$"
-  (define START-PATH-PART-REGEX "^(.*?)")
+  (define START-PATH-PART-REGEX "(?i:^(.*?)")
   (define IN-BETWEEN-PATH-PART-REGEX "(.*?/.*?)")
-  (define END-PATH-PART-REGEX "(.*?)$")
+  (define END-PATH-PART-REGEX "(.*?)$)")
   
   ;; used for building the file regex
-  (define END-FILE-REGEX "(.*)$")
+  (define END-FILE-REGEX "(.*)$)")
   
   ;; all-files : path-string -> (listof path-string)                    
   ;; fetches all the files in all the directories, starting with the root
@@ -114,5 +114,12 @@
                                                    IN-BETWEEN-PATTERN))]))]
       (build-the-pattern (regexp-split (regexp "") pattern)
                          "")))
+  
+  
+  ;; get-match-score : (listof string) number -> number
+  ;; given a regexp-match result and the number of directories
+  ;; used in the match, calculates the odds of this match being 
+  ;; the one the user wants
+  
   
   )

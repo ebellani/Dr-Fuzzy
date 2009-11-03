@@ -58,10 +58,10 @@
 
 
 (check-expect (build-path-parts-regex (list "app" "db"))
-              "^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$")
+              "(?i:^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$)")
 
 (check-expect (build-file-regex "foo")
-              "^(.*?)(f)([^/]*?)(o)([^/]*?)(o)(.*)$")
+              "(?i:^(.*?)(f)([^/]*?)(o)([^/]*?)(o)(.*)$)")
 
 (check-expect (make-pattern "")
               "()")
@@ -69,17 +69,9 @@
 (check-expect (make-pattern "foo")
               "(f)([^/]*?)(o)([^/]*?)(o)")
 
+;("LICENSE.txt" "L" "I" "C" "ENSE.txt")
+
 (check-expect (teardown) true)
-;(check-expect (expand-all-subdirectories)
-;              test-directories)
-
-;(call-with-exception-handler (λ (exc)
-;                               (print exc)) (teardown))
-
-
-
-;(test-execute (teardown))
-
 
 (test)
 
