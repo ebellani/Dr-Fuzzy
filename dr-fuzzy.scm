@@ -4,7 +4,8 @@
            all-files
            make-pattern
            build-path-parts-regex
-           build-file-regex)
+           build-file-regex
+           get-match-score)
   
   
   ;; used in the separation into fragments
@@ -14,8 +15,9 @@
   (define IN-BETWEEN-PATTERN "([^/]*?)")
   
   ;; used in separation of path parts, like
-  ;; app/db/ will get you
-  ;; "^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$"
+  ;; app/db/ will get you. 
+  ;; This is case insensitive
+  ;; "(?i:^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$)"
   (define START-PATH-PART-REGEX "(?i:^(.*?)")
   (define IN-BETWEEN-PATH-PART-REGEX "(.*?/.*?)")
   (define END-PATH-PART-REGEX "(.*?)$)")
@@ -120,6 +122,42 @@
   ;; given a regexp-match result and the number of directories
   ;; used in the match, calculates the odds of this match being 
   ;; the one the user wants
+  (define (get-match-score initial-match-result number-of-folders)
+    (local [;; get-matched-chars  : (listof string) number number -> number 
+            ;; returns the accumulative result of the matched chars.
+            ;; We pass the rest of the initial result of (regexp-match).
+            ;; So ("Foo" "" "F" "" "o" "" "o" "") will be passed as 
+            ;; ("" "F" "" "o" "" "o" "").
+            (define (get-matched-chars match-result matched-chars index)
+              (cond
+                [(empty? match-result) matched-chars]
+                [(zero? (modulo index 2))
+                 (get-matched-chars (rest match-result)
+                                    (+ (string-length (first match-result))
+                                       matched-chars)
+                                    (add1 index))]
+                [else
+                 (get-matched-chars (rest match-result)
+                                    matched-chars
+                                    (add1 index))]))
+            ;; remove-/ : string -> string
+            ;; removes the '/' char, a la gsub, and
+            ;; returns the length of the string
+            ;; TODO: find a simpler way, like gsub
+            (define (total-chars a-string)
+              (string-length (list->string (remove* (list #\/)
+                                                    (string->list a-string)))))
+            
+            (define (get-a-ration divisor base)
+              (cond
+                [(zero? divisor) 1]
+                [else
+                 (/ base divisor)]))]
+      
+      (get-a-ration (total-chars (first initial-match-result))
+                    (get-matched-chars (rest initial-match-result)
+                                       0
+                                       1))))
   
   
   )

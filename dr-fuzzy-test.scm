@@ -69,7 +69,13 @@
 (check-expect (make-pattern "foo")
               "(f)([^/]*?)(o)([^/]*?)(o)")
 
-;("LICENSE.txt" "L" "I" "C" "ENSE.txt")
+(check-expect (get-match-score (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 1)
+              3/11)
+
+(check-expect (get-match-score (list "compiled/drscheme/errortrace"
+                                     "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 1)
+              4/26)
+
 
 (check-expect (teardown) true)
 
