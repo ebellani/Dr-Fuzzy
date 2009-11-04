@@ -5,8 +5,31 @@
            make-pattern
            build-path-parts-regex
            build-file-regex
-           get-match-score)
+           build-match-result
+           make-match-result)
   
+  
+  ;; result is a string representing the formatted text result, like "lib/c(ap)_(p)ool/"
+  ;; score is the final weight that will be used to calculate the position of this
+  ;; match in 
+  (define-struct match-result (score result) #:transparent)
+  
+  ;; match-result
+  
+  ;; a run is a piece of a match that represents the 
+  ;; different parts matched.
+  ;;     for example, the match "app" for the string "lib/cap_pool/" will produce
+  ;;     ((make-run ("test/c" false) ("ap" true) ("_" false)  ("p" true) ("ool" false)))
+  ;;     indicating what parts of the file was matched. 
+  ;; So capture is the text itself like "test/c"
+  ;; and is inside is if the text was used to capture the match. "test/c" was not, so it is
+  ;; false, but "ap" was used, so it is true
+  (define-struct run (capture is-inside?)
+    #:mutable)
+  
+  ;; used to mark a run
+  (define LEFT-RUN-MARKER "(")
+  (define RIGHT-RUN-MARKER ")")
   
   ;; used in the separation into fragments
   ;; like "foo" -> (f)([^/]*?)(o)([^/]*?)(o)
@@ -118,29 +141,60 @@
                          "")))
   
   
-  ;; get-match-score : (listof string) number -> number
+  ;; build-match-result : (listof string) number -> match-result
   ;; given a regexp-match result and the number of directories
-  ;; used in the match, calculates the odds of this match being 
-  ;; the one the user wants
-  (define (get-match-score initial-match-result number-of-folders)
-    (local [;; get-matched-chars  : (listof string) number number -> number 
-            ;; returns the accumulative result of the matched chars.
-            ;; We pass the rest of the initial result of (regexp-match).
-            ;; So ("Foo" "" "F" "" "o" "" "o" "") will be passed as 
-            ;; ("" "F" "" "o" "" "o" "").
-            (define (get-matched-chars match-result matched-chars index)
+  ;; used in the match, constructs a match-result struct.
+  (define (build-match-result the-match0 number-of-folders)
+    (local [;; analise-match   : (listof string) (listof run) number -> match-result
+            ;; accumulates the matched chars and the runs and ultimately throws it all in the synthesize-result
+            ;; so it can build a match result from the gathered data.
+            (define (analise-match raw-match runs matched-chars index)
               (cond
-                [(empty? match-result) matched-chars]
-                [(zero? (modulo index 2))
-                 (get-matched-chars (rest match-result)
-                                    (+ (string-length (first match-result))
-                                       matched-chars)
-                                    (add1 index))]
+                [(empty? raw-match) ;; returns the match-result
+                 (synthesize-result runs matched-chars)]
+                [(zero? (modulo index 2)) ;; here we have a match string
+                 (analise-match (rest raw-match)
+                                (update-runs runs
+                                             (make-run (first raw-match)
+                                                       true))
+                                (+ matched-chars
+                                   (string-length (first raw-match)))
+                                (add1 index))]
                 [else
-                 (get-matched-chars (rest match-result)
-                                    matched-chars
-                                    (add1 index))]))
-            ;; remove-/ : string -> string
+                 (analise-match (rest raw-match)
+                                (update-runs runs
+                                             (make-run (first raw-match)
+                                                       false))
+                                matched-chars
+                                (add1 index))])) ;; here we have the rest of the string
+            
+            ;; update-runs : (listof run) run -> (listof run)
+            ;; we shall check if the this run and the last of the list 
+            ;; are both inside, because if they are they actually are the same,
+            ;; so join them.
+            (define (update-runs runs a-run)
+              (cond
+                [(and (not (empty? runs))
+                      (equal? (run-is-inside? (last runs))
+                              (run-is-inside? a-run)))
+                 (begin
+                   (set-run-capture! (last runs)
+                                     (string-append (run-capture (last runs))
+                                                    (run-capture a-run)))
+                   runs)]
+                [(not (string=? "" (run-capture a-run)))
+                 (append runs (list a-run))]
+                [else runs]))
+            
+            
+            ;; format-run : string -> string
+            ;; nest the run inside run formatters
+            (define (format-run a-run)
+              (string-append LEFT-RUN-MARKER
+                             (run-capture a-run)
+                             RIGHT-RUN-MARKER))
+            
+            ;; remove-/ : string -> number
             ;; removes the '/' char, a la gsub, and
             ;; returns the length of the string
             ;; TODO: find a simpler way, like gsub
@@ -148,16 +202,39 @@
               (string-length (list->string (remove* (list #\/)
                                                     (string->list a-string)))))
             
-            (define (get-a-ration divisor base)
+            
+            ;; synthesize-result : (listof run) number -> match-result
+            ;; returns a match result consisting of the score and 
+            ;; the full path
+            (define (synthesize-result runs matched-chars)
+              (make-match-result
+               (string-join (map (λ (a-run)
+                                   (cond
+                                     [(run-is-inside? a-run)
+                                      (format-run a-run)]
+                                     [else (run-capture a-run)]))
+                                 runs) "")
+               (exact->inexact
+                (* (get-a-ratio (count (λ (a-run)
+                                         (run-is-inside? a-run))
+                                       runs)
+                                number-of-folders)
+                   (get-a-ratio (total-chars (first the-match0))
+                                matched-chars)))))
+            
+            ;; get-a-ration : number number -> number
+            ;; formulates a radio of 2 numbers.
+            (define (get-a-ratio divisor base)
               (cond
                 [(zero? divisor) 1]
                 [else
                  (/ base divisor)]))]
       
-      (get-a-ration (total-chars (first initial-match-result))
-                    (get-matched-chars (rest initial-match-result)
-                                       0
-                                       1))))
-  
+      (cond
+        [(or (empty? the-match0)
+             (empty? (rest the-match0))
+             (string=? "" (first the-match0)))
+         (make-match-result "" 1)] ;; pretty sure it nothing
+        [else (analise-match (rest the-match0) empty 0 1)])))
   
   )

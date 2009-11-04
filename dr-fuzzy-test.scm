@@ -69,12 +69,16 @@
 (check-expect (make-pattern "foo")
               "(f)([^/]*?)(o)([^/]*?)(o)")
 
-(check-expect (get-match-score (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 1)
-              3/11)
+(check-expect (build-match-result empty 1)
+              (make-match-result "" 1))
 
-(check-expect (get-match-score (list "compiled/drscheme/errortrace"
-                                     "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 1)
-              4/26)
+(check-expect (build-match-result (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 1)
+              (make-match-result "(LIC)ENSE.txt" (exact->inexact 3/11)))
+
+
+(check-expect (build-match-result (list "compiled/drscheme/errortrace"
+                                        "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 3)
+              (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace" (exact->inexact 2/13)))
 
 
 (check-expect (teardown) true)
