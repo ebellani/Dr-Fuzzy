@@ -6,12 +6,14 @@
            build-path-parts-regex
            build-file-regex
            build-match-result
-           make-match-result)
+           make-match-result
+           reload-files!
+           ignore?)
   
   
   ;; result is a string representing the formatted text result, like "lib/c(ap)_(p)ool/"
-  ;; score is the final weight that will be used to calculate the position of this
-  ;; match in 
+  ;; score is the final weight that will be used to calculate the probability that this
+  ;; result is the one that the user wants
   (define-struct match-result (score result) #:transparent)
   
   ;; match-result
@@ -24,8 +26,7 @@
   ;; So capture is the text itself like "test/c"
   ;; and is inside is if the text was used to capture the match. "test/c" was not, so it is
   ;; false, but "ap" was used, so it is true
-  (define-struct run (capture is-inside?)
-    #:mutable)
+  (define-struct run (capture is-inside?) #:mutable)
   
   ;; used to mark a run
   (define LEFT-RUN-MARKER "(")
@@ -47,6 +48,21 @@
   
   ;; used for building the file regex
   (define END-FILE-REGEX "(.*)$)")
+  
+  ;; ignore patterns. A list of patters
+  ;; for files that should not be included.
+  ;; For default ignores unix style hidden files.
+  (define PATTERNS-TO-IGNORE '(#px"^\\..*$"))
+  
+  ;; all files. Use reload if something changed
+  (define ALL-FILES empty)
+  
+  ;; reload-files! : void -> void
+  ;; use this for the side effect of
+  ;; setting the ALL-FILES var to contain
+  ;; all files in the current dir and below
+  (define (reload-files!)
+    (set! ALL-FILES (all-files "./")))
   
   ;; all-files : path-string -> (listof path-string)                    
   ;; fetches all the files in all the directories, starting with the root
@@ -73,6 +89,23 @@
     (get-sub-types current-dir (λ (file-or-dir)
                                  (or (file-exists? file-or-dir)
                                      (link-exists? file-or-dir)))))
+  
+  ;; ignore? : file-path -> boolean
+  ;; checks if a given file path is should be ignored
+  (define (ignore? a-file)
+    (local [(define (matches-any? patterns)
+              (cond
+                [(empty? patterns) false]
+                [(let-values ([(base name must-be-a-dir?)
+                               (split-path a-file)])
+                   (or (and (path-string? base)
+                            (regexp-match (first patterns)
+                                          (path->string base)))
+                       (and (path-string? name)
+                            (regexp-match (first patterns) (path->string name)))))
+                 true]
+                [else (matches-any? (rest patterns))]))]
+      (matches-any? PATTERNS-TO-IGNORE)))
   
   ;; get-sub-types : path-string (X -> boolean) -> (listof path-string)
   ;; returns only what the proc returns true in the current directory
@@ -141,6 +174,11 @@
                          "")))
   
   
+  ;; search : string -> (listof match-result)
+  ;; given a search query returns a list of match results
+  ;  (define (search query)
+  ;    $expr$ ---)
+  
   ;; build-match-result : (listof string) number -> match-result
   ;; given a regexp-match result and the number of directories
   ;; used in the match, constructs a match-result struct.
@@ -169,7 +207,7 @@
                                 (add1 index))])) ;; here we have the rest of the string
             
             ;; update-runs : (listof run) run -> (listof run)
-            ;; we shall check if the this run and the last of the list 
+            ;; check if this run and the last of the list 
             ;; are both inside, because if they are they actually are the same,
             ;; so join them.
             (define (update-runs runs a-run)
@@ -236,5 +274,6 @@
              (string=? "" (first the-match0)))
          (make-match-result "" 1)] ;; pretty sure it nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
+  
   
   )

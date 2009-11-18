@@ -66,9 +66,40 @@
 (check-expect (make-pattern "")
               "()")
 
+
+;; test if the system ignores hidden files
+
+(check-expect (ignore? (string->path ".hidden-stuff"))
+              true)
+
+(check-expect (ignore? (string->path ".hidden-stuff/something"))
+              true)
+
+(check-expect (ignore? (string->path "not-hidden-stuff"))
+              false)
+
+(check-expect (ignore? (string->path "not-hidden-stuff/.hidden"))
+              true)
+
+(check-expect (ignore? (string->path "name.othername/hidden"))
+              false)
+
+(check-expect (ignore? (string->path "name.othername/.hidden"))
+              true)
+
+(check-expect (ignore? (string->path "name.othername/not.hidden"))
+              false)
+
+(check-expect (ignore? (string->path ".hidden/not.hidden"))
+              true)
+
+
+
 (check-expect (make-pattern "foo")
               "(f)([^/]*?)(o)([^/]*?)(o)")
 
+;; TESTS FOR build-match-result
+;; 3 states being tested, empty, one file, file nested
 (check-expect (build-match-result empty 1)
               (make-match-result "" 1))
 
@@ -76,12 +107,22 @@
               (make-match-result "(LIC)ENSE.txt" (exact->inexact 3/11)))
 
 
-(check-expect (build-match-result (list "compiled/drscheme/errortrace"
-                                        "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 3)
-              (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace" (exact->inexact 2/13)))
+(check-expect (build-match-result
+               (list "compiled/drscheme/errortrace"
+                     "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 3)
+              (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace"
+                                 (exact->inexact 2/13)))
+
+;; testing the search with local conditions
+;(check-expect ("test-1/test-4/test-6/something.scm")
+;              (list
+;               (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)"
+;                                  1)))
+
+;(check-expect (teardown) true)
+
+(reload-files!)
 
 
-(check-expect (teardown) true)
 
 (test)
-
