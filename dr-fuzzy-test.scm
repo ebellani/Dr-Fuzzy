@@ -122,19 +122,19 @@
 ;; TESTS FOR build-match-result
 ;; 3 states being tested, empty, one file, file nested
 ;; TODO, FIX THE NUMBER OF DIRECTORIES
-;(check-expect (build-match-result empty 0)
-;              (make-match-result "" 1))
-;
-;(check-expect (build-match-result
-;               (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
-;              (make-match-result "(LIC)ENSE.txt" (exact->inexact 3/11)))
-;
-;
-;(check-expect (build-match-result
-;               (list "compiled/drscheme/errortrace"
-;                     "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 2)
-;              (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace"
-;                                 (exact->inexact 2/13)))
+(check-expect (build-match-result empty 0)
+              (make-match-result "" 1))
+
+(check-expect (build-match-result
+               (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
+              (make-match-result "(LIC)ENSE.txt" (exact->inexact 3/11)))
+
+
+(check-expect (build-match-result
+               (list "compiled/drscheme/errortrace"
+                     "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 2)
+              (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace"
+                                 (exact->inexact 2/13)))
 
 ;; testing the search with local conditions
 ;(check-expect ("test-1/test-4/test-6/something.scm")

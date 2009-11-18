@@ -277,7 +277,7 @@
                 (* (get-a-ratio (count (λ (a-run)
                                          (run-is-inside? a-run))
                                        runs)
-                                number-of-folders)
+                                (add1 number-of-folders))
                    (get-a-ratio (total-chars (first the-match0))
                                 matched-chars)))))
             
