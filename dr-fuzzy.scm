@@ -1,7 +1,5 @@
 (module dr-fuzzy scheme
-  (provide subdirectories 
-           files
-           all-files
+  (provide all-files
            make-pattern
            build-path-parts-regex
            build-file-regex
@@ -9,7 +7,7 @@
            make-match-result
            reload-files!
            ignored?
-           ALL-FILES)
+           how-many-directories-up-to)
   
   
   ;; result is a string representing the formatted text result, like "lib/c(ap)_(p)ool/"
@@ -52,8 +50,10 @@
   
   ;; ignore patterns. A list of patters
   ;; for files that should not be included.
-  ;; For default ignores unix style hidden files.
-  (define PATTERNS-TO-IGNORE '(#px"^.*\\/\\..*$"))
+  ;; For default ignores unix style hidden files and
+  ;; files ending in ~
+  (define PATTERNS-TO-IGNORE '(#px"^.*\\/\\..*$"
+                               #px"^.*~$"))
   
   ;; all files. Use reload if something changed
   (define ALL-FILES empty)
@@ -69,7 +69,32 @@
   ;; fetches all the files in all the directories, starting with the root
   ;; passed. 
   (define (all-files (root-directory (current-directory)))
-    (local [;; all-files-in-directories : (listof path-string) -> 
+    (local [;; get-sub-types : path-string (X -> boolean) -> (listof path-string)
+            ;; returns only what the proc returns true in the current directory
+            (define (get-sub-types a-dir what-to-get)
+              (filter (λ (file-or-dir)
+                        (what-to-get file-or-dir))
+                      (map (λ (file-or-dir)
+                             (build-path a-dir
+                                         file-or-dir))
+                           (reverse (directory-list a-dir)))))
+            
+            ;; subdirectories : path-string -> (listof path-string)
+            ;; return all directories in a directory
+            (define (subdirectories current-dir)
+              (get-sub-types current-dir
+                             directory-exists?))
+            
+            ;; files : path-string -> (listof path-string)
+            ;; return all files in a directory
+            (define (files current-dir)
+              (get-sub-types current-dir
+                             (λ (file-or-dir)
+                               (and (or (file-exists? file-or-dir)
+                                        (link-exists? file-or-dir))
+                                    (not (ignored? file-or-dir))))))
+            
+            ;; all-files-in-directories : (listof path-string) -> 
             ;;                                               (listof path-string)
             ;; retrieves all the files in a list of directories
             (define (all-files-in-directories directories)
@@ -81,16 +106,6 @@
       (append (files root-directory)
               (all-files-in-directories (subdirectories root-directory)))))
   
-  
-  (define (subdirectories current-dir)
-    (get-sub-types current-dir directory-exists?))
-  
-  
-  (define (files current-dir)
-    (get-sub-types current-dir (λ (file-or-dir)
-                                 (and (or (file-exists? file-or-dir)
-                                          (link-exists? file-or-dir))
-                                      (not (ignored? file-or-dir))))))
   
   ;; ignored? : file-path -> boolean
   ;; checks if a given file path is should be ignored
@@ -104,17 +119,6 @@
                  true]
                 [else (matches-any? (rest patterns))]))]
       (matches-any? PATTERNS-TO-IGNORE)))
-  
-  ;; get-sub-types : path-string (X -> boolean) -> (listof path-string)
-  ;; returns only what the proc returns true in the current directory
-  (define (get-sub-types a-dir what-to-get)
-    (filter (λ (file-or-dir)
-              (what-to-get file-or-dir))
-            (map (λ (file-or-dir)
-                   (build-path a-dir
-                               file-or-dir))
-                 (reverse (directory-list a-dir)))))
-  
   
   ;; build-path-parts-regex : (listof path-string) -> string
   ;; builds a regexp that will provide a matching for the directory
@@ -171,18 +175,37 @@
       (build-the-pattern (regexp-split (regexp "") pattern)
                          "")))
   
+  ;; how-many-directories-up-to : path-string -> number
+  ;; find how many directories there are in the file
+  (define (how-many-directories-up-to a-file0)
+    (local [(define (how-many-in-here a-file number-of-dirs)
+              (let-values ([(base name must-be-dir?) (split-path a-file)])
+                (cond
+                  [(equal? name 'same) number-of-dirs]
+                  [(false? must-be-dir?)
+                   (how-many-in-here base
+                                     number-of-dirs)]
+                  [else
+                   (how-many-in-here base
+                                     (add1 number-of-dirs))])))]
+      (how-many-in-here a-file0 0)))
   
   ;; search : string -> (listof match-result)
   ;; given a search query returns a list of match results
   ;  (define (search query)
-  ;    $expr$ ---)
+  ;    (local [(define (search-all-files files accumulator)
+  ;              (cond
+  ;                [(empty? files) accumulator]
+  ;                $expr$ ---))]
+  ;      $expr$ ---) $expr$ ---)
   
   ;; build-match-result : (listof string) number -> match-result
   ;; given a regexp-match result and the number of directories
   ;; used in the match, constructs a match-result struct.
   (define (build-match-result the-match0 number-of-folders)
     (local [;; analise-match   : (listof string) (listof run) number -> match-result
-            ;; accumulates the matched chars and the runs and ultimately throws it all in the synthesize-result
+            ;; accumulates the matched chars and the runs and ultimately 
+            ;; throws it all in the synthesize-result
             ;; so it can build a match result from the gathered data.
             (define (analise-match raw-match runs matched-chars index)
               (cond
