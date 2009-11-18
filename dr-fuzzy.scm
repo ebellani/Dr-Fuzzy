@@ -8,7 +8,8 @@
            build-match-result
            make-match-result
            reload-files!
-           ignore?)
+           ignored?
+           ALL-FILES)
   
   
   ;; result is a string representing the formatted text result, like "lib/c(ap)_(p)ool/"
@@ -52,7 +53,7 @@
   ;; ignore patterns. A list of patters
   ;; for files that should not be included.
   ;; For default ignores unix style hidden files.
-  (define PATTERNS-TO-IGNORE '(#px"^\\..*$"))
+  (define PATTERNS-TO-IGNORE '(#px"^.*\\/\\..*$"))
   
   ;; all files. Use reload if something changed
   (define ALL-FILES empty)
@@ -87,22 +88,19 @@
   
   (define (files current-dir)
     (get-sub-types current-dir (λ (file-or-dir)
-                                 (or (file-exists? file-or-dir)
-                                     (link-exists? file-or-dir)))))
+                                 (and (or (file-exists? file-or-dir)
+                                          (link-exists? file-or-dir))
+                                      (not (ignored? file-or-dir))))))
   
-  ;; ignore? : file-path -> boolean
+  ;; ignored? : file-path -> boolean
   ;; checks if a given file path is should be ignored
-  (define (ignore? a-file)
+  (define (ignored? a-file)
     (local [(define (matches-any? patterns)
               (cond
                 [(empty? patterns) false]
-                [(let-values ([(base name must-be-a-dir?)
-                               (split-path a-file)])
-                   (or (and (path-string? base)
-                            (regexp-match (first patterns)
-                                          (path->string base)))
-                       (and (path-string? name)
-                            (regexp-match (first patterns) (path->string name)))))
+                [(and (path-string? a-file)
+                      (regexp-match (first patterns)
+                                    (path->string a-file)))
                  true]
                 [else (matches-any? (rest patterns))]))]
       (matches-any? PATTERNS-TO-IGNORE)))

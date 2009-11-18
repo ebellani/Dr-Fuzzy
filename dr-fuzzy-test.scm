@@ -67,30 +67,33 @@
               "()")
 
 
-;; test if the system ignores hidden files
+;; test if the system ignores hidden unix files by default
 
-(check-expect (ignore? (string->path ".hidden-stuff"))
+(check-expect (ignored? (string->path "./.hidden-stuff"))
               true)
 
-(check-expect (ignore? (string->path ".hidden-stuff/something"))
+(check-expect (ignored? (string->path "./.hidden-stuff/something"))
               true)
 
-(check-expect (ignore? (string->path "not-hidden-stuff"))
+(check-expect (ignored? (string->path "./not-hidden"))
               false)
 
-(check-expect (ignore? (string->path "not-hidden-stuff/.hidden"))
+(check-expect (ignored? (string->path "./not-hidden-stuff/.hidden"))
               true)
 
-(check-expect (ignore? (string->path "name.othername/hidden"))
+(check-expect (ignored? (string->path "./name.othername/hidden"))
               false)
 
-(check-expect (ignore? (string->path "name.othername/.hidden"))
+(check-expect (ignored? (string->path "./name.othername/.hidden"))
               true)
 
-(check-expect (ignore? (string->path "name.othername/not.hidden"))
+(check-expect (ignored? (string->path "./name.othername/not.hidden"))
               false)
 
-(check-expect (ignore? (string->path ".hidden/not.hidden"))
+(check-expect (ignored? (string->path "./.hidden/not.hidden"))
+              true)
+
+(check-expect (ignored? (string->path "./not-hidden/.hidden/not-hidden"))
               true)
 
 
