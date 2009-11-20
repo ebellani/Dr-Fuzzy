@@ -7,17 +7,17 @@
            make-match-result
            reload-files!
            ignored?
-           how-many-directories-up-to)
+           how-many-directories-up-to
+           search
+           path->list)
   
   
-  ;; result is a string representing the formatted text result, like "lib/c(ap)_(p)ool/"
+  ;; match-result is a string representing the formatted text result, like "lib/c(ap)_(p)ool/"
   ;; score is the final weight that will be used to calculate the probability that this
   ;; result is the one that the user wants
-  (define-struct match-result (score result) #:transparent)
+  (define-struct match-result (score path) #:transparent)
   
-  ;; match-result
-  
-  ;; a run is a piece of a match that represents the 
+  ;; a run is a piece of a match that represents the
   ;; different parts matched.
   ;;     for example, the match "app" for the string "lib/cap_pool/" will produce
   ;;     ((make-run ("test/c" false) ("ap" true) ("_" false)  ("p" true) ("ool" false)))
@@ -42,7 +42,16 @@
   ;; This is case insensitive
   ;; "(?i:^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$)"
   (define START-PATH-PART-REGEX "(?i:^(.*?)")
-  (define IN-BETWEEN-PATH-PART-REGEX "(.*?/.*?)")
+  
+  ;; for portability reasons I must know what the separator is
+  (define (FILE-SEPARATOR)
+    (cond
+      [(equal? (system-path-convention-type) 'windows) "\\"]
+      [else "/"]))
+  
+  (define IN-BETWEEN-PATH-PART-REGEX (format "(.*?~a.*?)"
+                                             (FILE-SEPARATOR)))
+  
   (define END-PATH-PART-REGEX "(.*?)$)")
   
   ;; used for building the file regex
@@ -64,6 +73,7 @@
   ;; all files in the current dir and below
   (define (reload-files!)
     (set! ALL-FILES (all-files "./")))
+  
   
   ;; all-files : path-string -> (listof path-string)                    
   ;; fetches all the files in all the directories, starting with the root
@@ -94,8 +104,8 @@
                                         (link-exists? file-or-dir))
                                     (not (ignored? file-or-dir))))))
             
-            ;; all-files-in-directories : (listof path-string) -> 
-            ;;                                               (listof path-string)
+            ;; all-files-in-directories : 
+            ;;   (listof path-string) -> (listof path-string)
             ;; retrieves all the files in a list of directories
             (define (all-files-in-directories directories)
               (cond
@@ -107,7 +117,7 @@
               (all-files-in-directories (subdirectories root-directory)))))
   
   
-  ;; ignored? : file-path -> boolean
+  ;; ignored? : file-path -> boolean$expr$
   ;; checks if a given file path is should be ignored
   (define (ignored? a-file)
     (local [(define (matches-any? patterns)
@@ -175,29 +185,74 @@
       (build-the-pattern (regexp-split (regexp "") pattern)
                          "")))
   
+  ;; path->list : path-string -> (listof string)
+  ;; transform a file path in a list representing it.
+  ;; Used to build the regexp for a path
+  ;; Ex: ("./app/db") -> '("app" "db")
+  (define (path->list the-path)
+    (operation-on-path (λ (path-part accumulator)
+                         (cons (path->string path-part)
+                               accumulator))
+                       empty
+                       the-path))
+  
   ;; how-many-directories-up-to : path-string -> number
   ;; find how many directories there are in the file
-  (define (how-many-directories-up-to a-file0)
-    (local [(define (how-many-in-here a-file number-of-dirs)
-              (let-values ([(base name must-be-dir?) (split-path a-file)])
+  (define (how-many-directories-up-to a-file)
+    (operation-on-path (λ (path-part accumulator)
+                         (add1 accumulator))
+                       0
+                       a-file))
+  
+  ;; operation-on-path : (X X -> X) X path-string -> (listof X)
+  (define (operation-on-path operation initial the-path0)
+    (local [(define (operation-on-path-acc the-path accumulator)
+              (let-values ([(base name must-be-dir?) (split-path the-path)])
                 (cond
-                  [(equal? name 'same) number-of-dirs]
+                  [(equal? name 'same) accumulator]
                   [(false? must-be-dir?)
-                   (how-many-in-here base
-                                     number-of-dirs)]
+                   (operation-on-path-acc base
+                                          accumulator)]
                   [else
-                   (how-many-in-here base
-                                     (add1 number-of-dirs))])))]
-      (how-many-in-here a-file0 0)))
+                   (operation-on-path-acc base
+                                          (operation name
+                                                     accumulator))])))]
+      (operation-on-path-acc the-path0 initial)))
   
   ;; search : string -> (listof match-result)
   ;; given a search query returns a list of match results
-  ;  (define (search query)
-  ;    (local [(define (search-all-files files accumulator)
-  ;              (cond
-  ;                [(empty? files) accumulator]
-  ;                $expr$ ---))]
-  ;      $expr$ ---) $expr$ ---)
+    (define (search query)
+      (local [(define (search-all-files files accumulator)
+                (cond
+                  [(empty? files) accumulator]
+                  [else
+                   (let*-values ([(base
+                                   name
+                                   must-be-dir?) (split-path (first files))]
+                                 [(path-result)
+                                  (build-match-result
+                                   (regexp-match (build-path-parts-regex 
+                                                  (path->list base))
+                                                 (path->string base))
+                                   (how-many-directories-up-to base))])
+                     (cond
+                       [(empty? (match-result-path path-result))
+                        (search-all-files (rest files)
+                                          accumulator)]
+                       [else
+                        (let ([file-result
+                               (build-match-result
+                                (regexp-match (build-file-regex
+                                               (path->string (first files)))
+                                              (path->string (first files)))
+                                (how-many-directories-up-to (first files)))])
+                          (cond
+                            [(empty? (match-result-path file-result))
+                             (search-all-files (rest files)
+                                               accumulator)]
+                            [else
+                             (cons file-result accumulator)]))]))]))] 
+        (search-all-files ALL-FILES empty)))
   
   ;; build-match-result : (listof string) number -> match-result
   ;; given a regexp-match result and the number of directories
@@ -296,5 +351,5 @@
          (make-match-result "" 1)] ;; pretty sure it nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
   
-  
+  (reload-files!)
   )

@@ -42,6 +42,8 @@
 (check-expect (setup) (void))
 
 
+;; tests for checking if the system is reading all the files correctly
+
 (check-expect (all-files "test-1")
               (list (string->path "test-1/example.txt")
                     (string->path "test-1/test-4/chuck.norris")
@@ -49,6 +51,22 @@
 
 (check-expect (all-files "test-2")
               (list (string->path "test-2/bob.java")))
+
+
+;; building lists from paths
+
+(check-expect (path->list (string->path "./app/db/"))
+              '("app" "db"))
+
+(check-expect (path->list (string->path "./app/"))
+              '("app"))
+
+(check-expect (path->list (string->path "./"))
+              empty)
+
+
+
+;; building regexps
 
 
 (check-expect (build-path-parts-regex (list "app" "db"))
@@ -121,7 +139,6 @@
 
 ;; TESTS FOR build-match-result
 ;; 3 states being tested, empty, one file, file nested
-;; TODO, FIX THE NUMBER OF DIRECTORIES
 (check-expect (build-match-result empty 0)
               (make-match-result "" 1))
 
@@ -137,7 +154,8 @@
                                  (exact->inexact 2/13)))
 
 ;; testing the search with local conditions
-;(check-expect ("test-1/test-4/test-6/something.scm")
+(search "test-1/test-4/test-6/something.scm")
+;(check-expect (search "test-1/test-4/test-6/something.scm")
 ;              (list
 ;               (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)"
 ;                                  1)))
