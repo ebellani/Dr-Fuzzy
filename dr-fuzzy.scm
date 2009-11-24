@@ -9,21 +9,27 @@
            ignored?
            how-many-directories-up-to
            search
+           clean-path
            path->list)
   
   
-  ;; match-result is a string representing the formatted text result, like "lib/c(ap)_(p)ool/"
-  ;; score is the final weight that will be used to calculate the probability that this
+  ;; match-result is a string representing the formatted 
+  ;; text result, like "lib/c(ap)_(p)ool/"
+  ;; score is the final weight that will be used to calculate 
+  ;; the probability that this
   ;; result is the one that the user wants
   (define-struct match-result (score path) #:transparent)
   
   ;; a run is a piece of a match that represents the
   ;; different parts matched.
-  ;;     for example, the match "app" for the string "lib/cap_pool/" will produce
-  ;;     ((make-run ("test/c" false) ("ap" true) ("_" false)  ("p" true) ("ool" false)))
-  ;;     indicating what parts of the file was matched. 
+  ;; for example, the match "app" for 
+  ;; the string "lib/cap_pool/" will produce
+  ;; ((make-run ("test/c" false) ("ap" true) ("_" false) 
+  ;;            ("p" true) ("ool" false)))
+  ;; indicating what parts of the file was matched. 
   ;; So capture is the text itself like "test/c"
-  ;; and is inside is if the text was used to capture the match. "test/c" was not, so it is
+  ;; and is inside is if the text was used to capture the match. 
+  ;; "test/c" was not, so it is
   ;; false, but "ap" was used, so it is true
   (define-struct run (capture is-inside?) #:mutable)
   
@@ -74,12 +80,12 @@
   (define (reload-files!)
     (set! ALL-FILES (all-files "./")))
   
-  
   ;; all-files : path-string -> (listof path-string)                    
   ;; fetches all the files in all the directories, starting with the root
   ;; passed. 
   (define (all-files (root-directory (current-directory)))
-    (local [;; get-sub-types : path-string (X -> boolean) -> (listof path-string)
+    (local [;; get-sub-types : 
+            ;;     path-string (X -> boolean) -> (listof path-string)
             ;; returns only what the proc returns true in the current directory
             (define (get-sub-types a-dir what-to-get)
               (filter (λ (file-or-dir)
@@ -100,8 +106,7 @@
             (define (files current-dir)
               (get-sub-types current-dir
                              (λ (file-or-dir)
-                               (and (or (file-exists? file-or-dir)
-                                        (link-exists? file-or-dir))
+                               (and (file-exists? file-or-dir)
                                     (not (ignored? file-or-dir))))))
             
             ;; all-files-in-directories : 
@@ -113,11 +118,12 @@
                 [else
                  (append (all-files (first directories))
                          (all-files-in-directories (rest directories)))]))]
+      
       (append (files root-directory)
               (all-files-in-directories (subdirectories root-directory)))))
   
   
-  ;; ignored? : file-path -> boolean$expr$
+  ;; ignored? : file-path -> boolean
   ;; checks if a given file path is should be ignored
   (define (ignored? a-file)
     (local [(define (matches-any? patterns)
@@ -204,12 +210,32 @@
                        0
                        a-file))
   
+  ;; clean-path : path-string -> string
+  ;; used to clean a path of signs of
+  ;; things like "./"
+  ;; For example "./EXAMPLE.txt" -> "EXAMPLE.txt"
+  ;; "./app/db/wee.txt" -> "app/db/wee.txt"
+  ;; returns empty if the tring is blank
+  (define (clean-path the-path)
+    (operation-on-path (λ (path-part accumulator)
+                         (string-append (path->string path-part)
+                                        (FILE-SEPARATOR)
+                                        accumulator))
+                       (let ([filename
+                              (file-name-from-path the-path)])
+                         (cond
+                           [(false? filename) ""]
+                           [else (path->string filename)]))
+                       the-path))
+  
   ;; operation-on-path : (X X -> X) X path-string -> (listof X)
   (define (operation-on-path operation initial the-path0)
     (local [(define (operation-on-path-acc the-path accumulator)
               (let-values ([(base name must-be-dir?) (split-path the-path)])
                 (cond
-                  [(equal? name 'same) accumulator]
+                  [(or (equal? name 'same)
+                       (equal? base 'relative))
+                   accumulator]
                   [(false? must-be-dir?)
                    (operation-on-path-acc base
                                           accumulator)]
@@ -219,40 +245,67 @@
                                                      accumulator))])))]
       (operation-on-path-acc the-path0 initial)))
   
+  
   ;; search : string -> (listof match-result)
   ;; given a search query returns a list of match results
-    (define (search query)
-      (local [(define (search-all-files files accumulator)
-                (cond
-                  [(empty? files) accumulator]
-                  [else
-                   (let*-values ([(base
-                                   name
-                                   must-be-dir?) (split-path (first files))]
-                                 [(path-result)
-                                  (build-match-result
-                                   (regexp-match (build-path-parts-regex 
-                                                  (path->list base))
-                                                 (path->string base))
-                                   (how-many-directories-up-to base))])
-                     (cond
-                       [(empty? (match-result-path path-result))
-                        (search-all-files (rest files)
-                                          accumulator)]
-                       [else
-                        (let ([file-result
-                               (build-match-result
-                                (regexp-match (build-file-regex
-                                               (path->string (first files)))
-                                              (path->string (first files)))
-                                (how-many-directories-up-to (first files)))])
-                          (cond
-                            [(empty? (match-result-path file-result))
-                             (search-all-files (rest files)
-                                               accumulator)]
-                            [else
-                             (cons file-result accumulator)]))]))]))] 
-        (search-all-files ALL-FILES empty)))
+  ;; TODO: BUILD THE REGEXP FROM THE QUERY 
+  (define (search query)
+    (local [;; separates a regexp for the path part of the query, if any
+            ;; returns empty if there is none, as in "./EXAMPLE.txt"
+            (define path-regexp
+              (cond
+                [(string=? "" query) empty]
+                [else 
+                 (build-path-parts-regex (path->list (path-only query)))]))
+            
+            ;; separates a regexp for the file part of the query
+            ;; in the case this is not a file, returns empty.
+            (define file-regexp
+              (cond
+                [(string=? "" query) empty]
+                [else
+                 (let
+                     ([filename (file-name-from-path query)])
+                   (cond
+                     [(false? filename) empty]
+                     [else
+                      (build-file-regex (path->string filename))]))]))
+            
+            ;; build-result : string regexp -> match-result or empty
+            ;; creates the result for the given path.
+            (define (build-result path regexp)
+              (cond
+                [(or (string=? path "") 
+                     (empty? path)
+                     (empty? regexp)) empty]
+                [else
+                 (build-match-result
+                  (regexp-match regexp path)
+                  (how-many-directories-up-to path))]))
+            
+            (define (search-all-files files accumulator)
+              (cond
+                [(empty? files) accumulator]
+                [else
+                 (let*-values ([(base name must-be-dir?)
+                                (split-path (first files))]
+                               [(path-result)
+                                (build-result (clean-path base) path-regexp)])
+                   (cond
+                     [(empty? path-result)
+                      (search-all-files (rest files)
+                                        accumulator)]
+                     [else
+                      (let ([file-result
+                             (build-result (clean-path name) file-regexp)])
+                        (cond
+                          [(empty? file-result)
+                           (search-all-files (rest files) accumulator)]
+                          [else
+                           (search-all-files (rest files)
+                                             (cons file-result
+                                                   accumulator))]))]))]))]
+      (search-all-files ALL-FILES empty)))
   
   ;; build-match-result : (listof string) number -> match-result
   ;; given a regexp-match result and the number of directories
@@ -346,9 +399,10 @@
       
       (cond
         [(or (empty? the-match0)
-             (empty? (rest the-match0))
+             (false? the-match0)
+;             (empty? (rest the-match0))
              (string=? "" (first the-match0)))
-         (make-match-result "" 1)] ;; pretty sure it nothing
+         (make-match-result "" 1)] ;; pretty sure it is nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
   
   (reload-files!)

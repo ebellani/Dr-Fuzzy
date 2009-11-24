@@ -6,17 +6,17 @@
 
 ;; builds up a fake enviroment for testing purposes
 ;;
-(define test-directories (list (build-path "test-1/")
-                               (build-path "test-2/")
-                               (build-path "test-3/")
-                               (build-path "test-1/test-4/")
-                               (build-path "test-1/test-5/")
-                               (build-path "test-1/test-4/test-6/")))
+(define test-directories (list (build-path "./test-1/")
+                               (build-path "./test-2/")
+                               (build-path "./test-3/")
+                               (build-path "./test-1/test-4/")
+                               (build-path "./test-1/test-5/")
+                               (build-path "./test-1/test-4/test-6/")))
 
-(define test-files (list (build-path "test-1/example.txt")
-                         (build-path "test-2/bob.java")
-                         (build-path "test-1/test-4/chuck.norris")
-                         (build-path "test-1/test-4/test-6/something.scm")))
+(define test-files (list (build-path "./test-1/example.txt")
+                         (build-path "./test-2/bob.java")
+                         (build-path "./test-1/test-4/chuck.norris")
+                         (build-path "./test-1/test-4/test-6/something.scm")))
 
 
 (define (setup)
@@ -26,9 +26,12 @@
                          void))
                    test-directories)
          (for-each (λ (a-file)
-                     (if (not (link-exists? a-file))
-                         (make-file-or-directory-link a-file a-file)
-                         void))
+                     (cond
+                       [(not (file-exists? a-file))
+                        (let ([out (open-output-file a-file)])
+                          (begin (write "hello world" out)
+                                 (close-output-port out)))]
+                       [else void]))
                    test-files)))
 
 
@@ -36,8 +39,6 @@
 ;; for now a rm is fine, but this is not very portable
 (define (teardown)
   (system (format "rm -rf ./test-*")))
-
-
 
 (check-expect (setup) (void))
 
@@ -64,7 +65,17 @@
 (check-expect (path->list (string->path "./"))
               empty)
 
+;; cleaning the path
 
+
+(check-expect (clean-path (string->path "./EXAMPLE.txt"))
+              "EXAMPLE.txt")
+
+(check-expect (clean-path (string->path "./"))
+              "")
+
+(check-expect (clean-path (string->path "./app/db/wee.txt"))
+              "app/db/wee.txt")
 
 ;; building regexps
 
@@ -154,16 +165,16 @@
                                  (exact->inexact 2/13)))
 
 ;; testing the search with local conditions
+;(search "")
+
 (search "test-1/test-4/test-6/something.scm")
+
 ;(check-expect (search "test-1/test-4/test-6/something.scm")
 ;              (list
 ;               (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)"
 ;                                  1)))
 
 ;(check-expect (teardown) true)
-
-(reload-files!)
-
 
 
 (test)
