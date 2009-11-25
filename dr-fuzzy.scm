@@ -50,6 +50,10 @@
   ;; "(?i:^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$)"
   (define START-PATH-PART-REGEX "(?i:^(.*?)")
   
+  ;; this will be used to exponentiate 10 to
+  ;; truncate the result while calculating the score
+  (define SCORE-PRECISION 4)
+  
   ;; for portability reasons I must know what the separator is
   (define (FILE-SEPARATOR)
     (cond
@@ -280,14 +284,19 @@
         [(string=? "" (match-result-path match-path))
          (match-result-path match-file)]
         [else
-         (make-match-result (string-append
-                             (format-result-path
-                              (regexp-split #px"/"
-                                            (match-result-path match-path))
-                              "")
-                             (match-result-path match-file))
-                            (* (match-result-score match-path)
-                               (match-result-score match-file)))])))
+         (make-match-result
+          (string-append
+           (format-result-path
+            (regexp-split #px"/"
+                          (match-result-path match-path))
+            "")
+           (match-result-path match-file))
+          (inexact->exact
+           (/ (truncate
+               (* (* (match-result-score match-path)
+                     (match-result-score match-file))
+                  (expt 10 SCORE-PRECISION)))
+              (expt 10 (- SCORE-PRECISION 2)))))])))
   
   
   ;; search : string -> (listof match-result)

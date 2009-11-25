@@ -15,7 +15,7 @@
 
 (define test-files (list (build-path "./test-1/example.txt")
                          (build-path "./test-2/bob.java")
-                         (build-path "./test-1/test-4/chuck.norris")
+                         (build-path "./test-1/test-4/bob.marley")
                          (build-path "./test-1/test-4/test-6/something.scm")))
 
 
@@ -47,7 +47,7 @@
 
 (check-expect (all-files "test-1")
               (list (string->path "test-1/example.txt")
-                    (string->path "test-1/test-4/chuck.norris")
+                    (string->path "test-1/test-4/bob.marley")
                     (string->path "test-1/test-4/test-6/something.scm")))
 
 (check-expect (all-files "test-2")
@@ -85,8 +85,9 @@
 ;; building regexps
 
 
-(check-expect (build-path-parts-regex (list "app" "db"))
-              "(?i:^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$)")
+(check-expect
+ (build-path-parts-regex (list "app" "db"))
+ "(?i:^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$)")
 
 (check-expect (build-file-regex "foo")
               "(?i:^(.*?)(f)([^/]*?)(o)([^/]*?)(o)(.*)$)")
@@ -164,7 +165,8 @@
 
 (check-expect (build-match-result
                (list "compiled/drscheme/errortrace/"
-                     "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 2)
+                     "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace")
+               2)
               (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace"
                                  (exact->inexact 2/13)))
 
@@ -172,49 +174,59 @@
                (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
               (make-match-result "(LIC)ENSE.txt" (exact->inexact 3/11)))
 
-;; erro esta na geraçao de regexp
-;(build-match-result
-; (regexp-match #px"(?i:^(.*?)(t)([^/]*?)(e)([^/]*?)(s)([^/]*?)(t)([^/]*?)(-)([^/]*?)(4)(.*?/.*?)(t)([^/]*?)(e)([^/]*?)(s)([^/]*?)(t)([^/]*?)(-)([^/]*?)(6)(.*?)$)" 
-;               "test-1/test-4/test-6/")
-; (how-many-directories-up-to "test-1/test-4/test-6/"))
 
-;(check-expect $expr$ ---)
-
-;; tests for summing match results 
-;; o problema é path->list
-
-
+;; adding match results
 (check-expect (add-match-results
                (make-match-result "(test-1)/(test-4)/(test-6)" 1.0)
                (make-match-result "(something.scm)" 1.0))
-              (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)" 1.0))
+              (make-match-result
+               "(test-1)/(test-4)/(test-6)/(something.scm)"
+               100))
 
 (check-expect (add-match-results
                (make-match-result "test-1/test-4/test-6" 1.0)
                (make-match-result "(so)mething.scm" 0.1538))
-              (make-match-result "t/t/t/(so)mething.scm" 0.1538))
+              (make-match-result "t/t/t/(so)mething.scm" 
+                                 ;; this is equivalent to 15.38
+                                 8658170283619779/562949953421312))
 
 
 ;; testing the search with local conditions
-;(search "")
+(check-expect (search "")
+              empty)
 
-;(check-expect (search "test-1/test-4/test-6/something.scm")
-;              (list
-;               (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)"
-;                                  1.0)))
-;; have to make this work
+(check-expect (search "test-1/test-4/test-6/something.scm")
+              (list
+               (make-match-result
+                "(test-1)/(test-4)/(test-6)/(something.scm)"
+                100)))
 
+(check-expect (search "README")
+              (list (make-match-result "./(README)"
+                                       100)))
 
-;(check-expect (search "README")
-;              '((make-match-result "README"
-;                                   1.0)))
+(check-expect (search "t/t/bob")
+              (list (make-match-result "./t/t/(bob).marley"
+                                       ;;this is equivalent to 4.99
+                                       2809120267572347/562949953421312)))
 
-(check-expect (search "so")
-              '((make-match-result "./c/d/e/dr-fuzzy_(s)cm.z(o)"
-                                   0.06666666666666667)
-                (make-match-result "./t/t/t/(so)mething.scm"
-                                   0.15384615384615385)))
+(check-expect (search "bob")
+              (list (make-match-result "./t/t/(bob).marley"
+                                       30)
+                    (make-match-result "./t/(bob).java"
+                                       75/2)))
 
+;; this test is not good because it depends of the compiled file for drscheme
+;(check-expect (search "so")
+;              (list (make-match-result "./c/d/e/dr-fuzzy_(s)cm.z(o)"
+;                                       ;;this is equivalent to 6.66
+;                                       1874623344892969/281474976710656) 
+;                    (make-match-result "./t/t/t/(so)mething.scm"
+;                                       ;;this is equivalent to 15.38
+;                                       8658170283619779/562949953421312)))
+
+;; uncomment this to cleanup all the created test files
+;; in unix 
 ;(check-expect (teardown) true)
 
 (test)
