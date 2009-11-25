@@ -55,15 +55,20 @@
 
 
 ;; building lists from paths
+;; path->list 
 
-(check-expect (path->list (string->path "./app/db/"))
+(check-expect (path->list (string->path "test-1/test-4/test-6/"))
+              '("test-1" "test-4" "test-6"))
+(check-expect (path->list (string->path "app/db/"))
               '("app" "db"))
 
-(check-expect (path->list (string->path "./app/"))
+(check-expect (path->list (string->path "app/"))
               '("app"))
 
 (check-expect (path->list (string->path "./"))
               empty)
+
+
 
 ;; cleaning the path
 
@@ -147,7 +152,6 @@
               true)
 
 
-
 ;; TESTS FOR build-match-result
 ;; 3 states being tested, empty, one file, file nested
 (check-expect (build-match-result empty 0)
@@ -159,22 +163,58 @@
 
 
 (check-expect (build-match-result
-               (list "compiled/drscheme/errortrace"
+               (list "compiled/drscheme/errortrace/"
                      "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace") 2)
               (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace"
                                  (exact->inexact 2/13)))
 
+(check-expect (build-match-result
+               (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
+              (make-match-result "(LIC)ENSE.txt" (exact->inexact 3/11)))
+
+;; erro esta na geraçao de regexp
+;(build-match-result
+; (regexp-match #px"(?i:^(.*?)(t)([^/]*?)(e)([^/]*?)(s)([^/]*?)(t)([^/]*?)(-)([^/]*?)(4)(.*?/.*?)(t)([^/]*?)(e)([^/]*?)(s)([^/]*?)(t)([^/]*?)(-)([^/]*?)(6)(.*?)$)" 
+;               "test-1/test-4/test-6/")
+; (how-many-directories-up-to "test-1/test-4/test-6/"))
+
+;(check-expect $expr$ ---)
+
+;; tests for summing match results 
+;; o problema é path->list
+
+
+(check-expect (add-match-results
+               (make-match-result "(test-1)/(test-4)/(test-6)" 1.0)
+               (make-match-result "(something.scm)" 1.0))
+              (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)" 1.0))
+
+(check-expect (add-match-results
+               (make-match-result "test-1/test-4/test-6" 1.0)
+               (make-match-result "(so)mething.scm" 0.1538))
+              (make-match-result "t/t/t/(so)mething.scm" 0.1538))
+
+
 ;; testing the search with local conditions
 ;(search "")
-
-(search "test-1/test-4/test-6/something.scm")
 
 ;(check-expect (search "test-1/test-4/test-6/something.scm")
 ;              (list
 ;               (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)"
-;                                  1)))
+;                                  1.0)))
+;; have to make this work
+
+
+;(check-expect (search "README")
+;              '((make-match-result "README"
+;                                   1.0)))
+
+(check-expect (search "so")
+              '((make-match-result "./c/d/e/dr-fuzzy_(s)cm.z(o)"
+                                   0.06666666666666667)
+                (make-match-result "./t/t/t/(so)mething.scm"
+                                   0.15384615384615385)))
 
 ;(check-expect (teardown) true)
-
 
 (test)

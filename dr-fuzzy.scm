@@ -10,6 +10,7 @@
            how-many-directories-up-to
            search
            clean-path
+           add-match-results
            path->list)
   
   
@@ -18,7 +19,7 @@
   ;; score is the final weight that will be used to calculate 
   ;; the probability that this
   ;; result is the one that the user wants
-  (define-struct match-result (score path) #:transparent)
+  (define-struct match-result (path score) #:transparent)
   
   ;; a run is a piece of a match that represents the
   ;; different parts matched.
@@ -196,11 +197,11 @@
   ;; Used to build the regexp for a path
   ;; Ex: ("./app/db") -> '("app" "db")
   (define (path->list the-path)
-    (operation-on-path (λ (path-part accumulator)
-                         (cons (path->string path-part)
-                               accumulator))
-                       empty
-                       the-path))
+    (filter (λ (path-part)
+              (and (not (string=? "" path-part))
+                   (not (string=? "." path-part))))
+            (regexp-split (FILE-SEPARATOR)
+                          (path->string the-path))))
   
   ;; how-many-directories-up-to : path-string -> number
   ;; find how many directories there are in the file
@@ -246,17 +247,61 @@
       (operation-on-path-acc the-path0 initial)))
   
   
+  ;; add-match-results : match-result match-result -> match-result
+  ;; sums 2 match results. Used to sum the match of the path
+  ;; with the match of the file
+  (define (add-match-results match-path match-file)
+    (local [;; format-result-path : (listof string) -> string
+            ;; receives the path splitted by the separator
+            ;; the verifies if the path is enclosed in parens.
+            ;; if it is, use all the path part, if there is not, use the first 
+            ;; letter of the path
+            (define (format-result-path path-parts accumulator)
+              (cond
+                [(empty? path-parts) accumulator]
+                [(string=? "" (first path-parts))
+                 (format-result-path (rest path-parts)
+                                     accumulator)]
+                [(and (equal? (string-ref (first path-parts) 0) #\()
+                      (equal? (string-ref (first path-parts)
+                                          (sub1 (string-length (first path-parts))))
+                              #\)))
+                 (format-result-path (rest path-parts)
+                                     (string-append accumulator
+                                                    (first path-parts)
+                                                    (FILE-SEPARATOR)))
+                 ]
+                [else
+                 (format-result-path (rest path-parts)
+                                     (string-append accumulator
+                                                    (string (string-ref (first path-parts) 0))
+                                                    (FILE-SEPARATOR)))]))]
+      (cond
+        [(string=? "" (match-result-path match-path))
+         (match-result-path match-file)]
+        [else
+         (make-match-result (string-append
+                             (format-result-path
+                              (regexp-split #px"/"
+                                            (match-result-path match-path))
+                              "")
+                             (match-result-path match-file))
+                            (* (match-result-score match-path)
+                               (match-result-score match-file)))])))
+  
+  
   ;; search : string -> (listof match-result)
   ;; given a search query returns a list of match results
-  ;; TODO: BUILD THE REGEXP FROM THE QUERY 
   (define (search query)
     (local [;; separates a regexp for the path part of the query, if any
             ;; returns empty if there is none, as in "./EXAMPLE.txt"
             (define path-regexp
               (cond
-                [(string=? "" query) empty]
+                [(or (string=? "" query)
+                     (false? (path-only query))) empty]
                 [else 
-                 (build-path-parts-regex (path->list (path-only query)))]))
+                 (build-path-parts-regex (path->list
+                                          (path-only query)))]))
             
             ;; separates a regexp for the file part of the query
             ;; in the case this is not a file, returns empty.
@@ -290,21 +335,31 @@
                  (let*-values ([(base name must-be-dir?)
                                 (split-path (first files))]
                                [(path-result)
-                                (build-result (clean-path base) path-regexp)])
+                                (cond
+                                  [(empty? path-regexp)
+                                   (make-match-result (path->string base)
+                                                      1.0)]
+                                  [else (build-result (clean-path base)
+                                                      path-regexp)])])
                    (cond
-                     [(empty? path-result)
+                     [(or (empty? path-result) ;; found nothing on this path
+                          (string=? "" (match-result-path path-result)))
                       (search-all-files (rest files)
                                         accumulator)]
                      [else
                       (let ([file-result
                              (build-result (clean-path name) file-regexp)])
                         (cond
-                          [(empty? file-result)
-                           (search-all-files (rest files) accumulator)]
-                          [else
+                          [(or (empty? file-result)
+                               (string=? "" (match-result-path file-result)))
                            (search-all-files (rest files)
-                                             (cons file-result
-                                                   accumulator))]))]))]))]
+                                             accumulator)]
+                          [else
+                           (search-all-files
+                            (rest files)
+                            (cons (add-match-results path-result
+                                                     file-result)
+                                  accumulator))]))]))]))]
       (search-all-files ALL-FILES empty)))
   
   ;; build-match-result : (listof string) number -> match-result
@@ -364,7 +419,6 @@
             ;; remove-/ : string -> number
             ;; removes the '/' char, a la gsub, and
             ;; returns the length of the string
-            ;; TODO: find a simpler way, like gsub
             (define (total-chars a-string)
               (string-length (list->string (remove* (list #\/)
                                                     (string->list a-string)))))
@@ -400,10 +454,9 @@
       (cond
         [(or (empty? the-match0)
              (false? the-match0)
-;             (empty? (rest the-match0))
+             ;             (empty? (rest the-match0))
              (string=? "" (first the-match0)))
          (make-match-result "" 1)] ;; pretty sure it is nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
   
-  (reload-files!)
-  )
+  (reload-files!))
