@@ -266,37 +266,28 @@
                 [(string=? "" (first path-parts))
                  (format-result-path (rest path-parts)
                                      accumulator)]
-                [(and (equal? (string-ref (first path-parts) 0) #\()
-                      (equal? (string-ref (first path-parts)
-                                          (sub1 (string-length (first path-parts))))
-                              #\)))
+                [(equal? (string-ref (first path-parts) 0) #\()
                  (format-result-path (rest path-parts)
                                      (string-append accumulator
                                                     (first path-parts)
-                                                    (FILE-SEPARATOR)))
-                 ]
+                                                    (FILE-SEPARATOR)))]
                 [else
                  (format-result-path (rest path-parts)
-                                     (string-append accumulator
-                                                    (string (string-ref (first path-parts) 0))
-                                                    (FILE-SEPARATOR)))]))]
+                                     (string-append
+                                      accumulator
+                                      (string (string-ref (first path-parts) 0))
+                                      (FILE-SEPARATOR)))]))]
       (cond
-        [(string=? "" (match-result-path match-path))
-         (match-result-path match-file)]
+        [(string=? "" (match-result-path match-path)) match-file]
         [else
          (make-match-result
           (string-append
-           (format-result-path
-            (regexp-split #px"/"
-                          (match-result-path match-path))
-            "")
+           (format-result-path (regexp-split (pregexp (FILE-SEPARATOR))
+                                             (match-result-path match-path))
+                               "")
            (match-result-path match-file))
-          (inexact->exact
-           (/ (truncate
-               (* (* (match-result-score match-path)
-                     (match-result-score match-file))
-                  (expt 10 SCORE-PRECISION)))
-              (expt 10 (- SCORE-PRECISION 2)))))])))
+          (* (match-result-score match-path)
+             (match-result-score match-file)))])))
   
   
   ;; search : string -> (listof match-result)
@@ -325,17 +316,22 @@
                      [else
                       (build-file-regex (path->string filename))]))]))
             
-            ;; build-result : string regexp -> match-result or empty
-            ;; creates the result for the given path.
+            ;; build-result : string regexp -> match-result or false
+            ;; creates the result for the given path. Returns false if
+            ;; there is no match
             (define (build-result path regexp)
               (cond
-                [(or (string=? path "") 
+                [(or (string=? path "")
                      (empty? path)
-                     (empty? regexp)) empty]
+                     (empty? regexp)) false]
                 [else
-                 (build-match-result
-                  (regexp-match regexp path)
-                  (how-many-directories-up-to path))]))
+                 (let ([the-match (regexp-match regexp path)])
+                   (cond
+                     [(false? the-match) false]
+                     [else
+                      (build-match-result
+                       (regexp-match regexp path)
+                       (how-many-directories-up-to path))]))]))
             
             (define (search-all-files files accumulator)
               (cond
@@ -346,21 +342,20 @@
                                [(path-result)
                                 (cond
                                   [(empty? path-regexp)
-                                   (make-match-result (path->string base)
+                                   (make-match-result (clean-path base)
                                                       1.0)]
-                                  [else (build-result (clean-path base)
-                                                      path-regexp)])])
+                                  [else
+                                   (build-result (clean-path base)
+                                                 path-regexp)])])
                    (cond
-                     [(or (empty? path-result) ;; found nothing on this path
-                          (string=? "" (match-result-path path-result)))
+                     [(false? path-result)
                       (search-all-files (rest files)
                                         accumulator)]
                      [else
                       (let ([file-result
                              (build-result (clean-path name) file-regexp)])
                         (cond
-                          [(or (empty? file-result)
-                               (string=? "" (match-result-path file-result)))
+                          [(false? file-result)
                            (search-all-files (rest files)
                                              accumulator)]
                           [else
@@ -375,15 +370,16 @@
   ;; given a regexp-match result and the number of directories
   ;; used in the match, constructs a match-result struct.
   (define (build-match-result the-match0 number-of-folders)
-    (local [;; analise-match   : (listof string) (listof run) number -> match-result
+    (local [;; analise-match : 
+            ;;   (listof string) (listof run) number -> match-result
             ;; accumulates the matched chars and the runs and ultimately 
             ;; throws it all in the synthesize-result
             ;; so it can build a match result from the gathered data.
             (define (analise-match raw-match runs matched-chars index)
               (cond
-                [(empty? raw-match) ;; returns the match-result
+                [(empty? raw-match) 
                  (synthesize-result runs matched-chars)]
-                [(zero? (modulo index 2)) ;; here we have a match string
+                [(zero? (modulo index 2)) 
                  (analise-match (rest raw-match)
                                 (update-runs runs
                                              (make-run (first raw-match)
@@ -397,7 +393,7 @@
                                              (make-run (first raw-match)
                                                        false))
                                 matched-chars
-                                (add1 index))])) ;; here we have the rest of the string
+                                (add1 index))]))
             
             ;; update-runs : (listof run) run -> (listof run)
             ;; check if this run and the last of the list 
@@ -444,13 +440,12 @@
                                       (format-run a-run)]
                                      [else (run-capture a-run)]))
                                  runs) "")
-               (exact->inexact
-                (* (get-a-ratio (count (λ (a-run)
-                                         (run-is-inside? a-run))
-                                       runs)
-                                (add1 number-of-folders))
-                   (get-a-ratio (total-chars (first the-match0))
-                                matched-chars)))))
+               (* (get-a-ratio (count (λ (a-run)
+                                        (run-is-inside? a-run))
+                                      runs)
+                               (add1 number-of-folders))
+                  (get-a-ratio (total-chars (first the-match0))
+                               matched-chars))))
             
             ;; get-a-ration : number number -> number
             ;; formulates a radio of 2 numbers.
@@ -463,7 +458,6 @@
       (cond
         [(or (empty? the-match0)
              (false? the-match0)
-             ;             (empty? (rest the-match0))
              (string=? "" (first the-match0)))
          (make-match-result "" 1)] ;; pretty sure it is nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
