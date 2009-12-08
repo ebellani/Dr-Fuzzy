@@ -11,15 +11,21 @@
            search
            clean-path
            add-match-results
-           path->list)
+           path->list
+           match-result-tagged-path
+           match-result-path)
   
   
   ;; match-result is a string representing the formatted 
   ;; text result, like "lib/c(ap)_(p)ool/"
-  ;; score is the final weight that will be used to calculate 
-  ;; the probability that this
-  ;; result is the one that the user wants
-  (define-struct match-result (path score) #:transparent)
+  ;; tagged-path is a string representing what parts of the path
+  ;;   matched the query
+  ;; score is a number representing the likelyhood that this match is
+  ;;   the one the user wants. It goes from 0 to 1.0.
+  ;; path is a path-string representing the file that resulted in this match
+  (define-struct match-result (tagged-path score path)
+    #:transparent
+    #:mutable)
   
   ;; a run is a piece of a match that represents the
   ;; different parts matched.
@@ -49,10 +55,6 @@
   ;; This is case insensitive
   ;; "(?i:^(.*?)(a)([^/]*?)(p)([^/]*?)(p)(.*?/.*?)(d)([^/]*?)(b)(.*?)$)"
   (define START-PATH-PART-REGEX "(?i:^(.*?)")
-  
-  ;; this will be used to exponentiate 10 to
-  ;; truncate the result while calculating the score
-  (define SCORE-PRECISION 4)
   
   ;; for portability reasons I must know what the separator is
   (define (FILE-SEPARATOR)
@@ -278,20 +280,23 @@
                                       (string (string-ref (first path-parts) 0))
                                       (FILE-SEPARATOR)))]))]
       (cond
-        [(string=? "" (match-result-path match-path)) match-file]
+        [(string=? "" (match-result-tagged-path match-path)) match-file]
         [else
          (make-match-result
           (string-append
-           (format-result-path (regexp-split (pregexp (FILE-SEPARATOR))
-                                             (match-result-path match-path))
-                               "")
-           (match-result-path match-file))
+           (format-result-path
+            (regexp-split (pregexp (FILE-SEPARATOR))
+                          (match-result-tagged-path match-path))
+            "")
+           (match-result-tagged-path match-file))
           (* (match-result-score match-path)
-             (match-result-score match-file)))])))
+             (match-result-score match-file))
+          empty)])))
   
   
   ;; search : string -> (listof match-result)
-  ;; given a search query returns a list of match results
+  ;; given a search query returns a list of match results that is
+  ;; sorted by the results with a larger match
   (define (search query)
     (local [;; separates a regexp for the path part of the query, if any
             ;; returns empty if there is none, as in "./EXAMPLE.txt"
@@ -343,7 +348,8 @@
                                 (cond
                                   [(empty? path-regexp)
                                    (make-match-result (clean-path base)
-                                                      1.0)]
+                                                      1.0
+                                                      empty)]
                                   [else
                                    (build-result (clean-path base)
                                                  path-regexp)])])
@@ -364,7 +370,7 @@
                             (cons (add-match-results path-result
                                                      file-result)
                                   accumulator))]))]))]))]
-      (search-all-files ALL-FILES empty)))
+      (sort (search-all-files ALL-FILES empty) #:key match-result-score >)))
   
   ;; build-match-result : (listof string) number -> match-result
   ;; given a regexp-match result and the number of directories
@@ -445,7 +451,8 @@
                                       runs)
                                (add1 number-of-folders))
                   (get-a-ratio (total-chars (first the-match0))
-                               matched-chars))))
+                               matched-chars))
+               empty))
             
             ;; get-a-ration : number number -> number
             ;; formulates a radio of 2 numbers.
@@ -459,7 +466,8 @@
         [(or (empty? the-match0)
              (false? the-match0)
              (string=? "" (first the-match0)))
-         (make-match-result "" 1)] ;; pretty sure it is nothing
+         (make-match-result "" 1 empty)] ;; pretty sure it is nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
+  
   
   (reload-files!))

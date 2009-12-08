@@ -156,11 +156,11 @@
 ;; TESTS FOR build-match-result
 ;; 3 states being tested, empty, one file, file nested
 (check-expect (build-match-result empty 0)
-              (make-match-result "" 1))
+              (make-match-result "" 1 empty))
 
 (check-expect (build-match-result
                (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
-              (make-match-result "(LIC)ENSE.txt" 3/11))
+              (make-match-result "(LIC)ENSE.txt" 3/11 empty))
 
 
 (check-expect (build-match-result
@@ -168,36 +168,41 @@
                      "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace")
                2)
               (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace"
-                                 2/13))
+                                 2/13
+                                 empty))
 
 (check-expect (build-match-result
                (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
-              (make-match-result "(LIC)ENSE.txt" 3/11))
+              (make-match-result "(LIC)ENSE.txt" 3/11 empty))
 
 
 ;; adding match results
-(check-expect (add-match-results (make-match-result "(t)est-1/(t)est-4/" 1/6)
-                                 (make-match-result "(bob).marley" 3/10))
+(check-expect (add-match-results (make-match-result "(t)est-1/(t)est-4/"
+                                                    1/6
+                                                    empty)
+                                 (make-match-result "(bob).marley"
+                                                    3/10
+                                                    empty))
               (make-match-result "(t)est-1/(t)est-4/(bob).marley"
-                                 1/20))
+                                 1/20
+                                 empty))
 
 (check-expect (add-match-results
-               (make-match-result "(test-1)/(test-4)/(test-6)" 1)
-               (make-match-result "(something.scm)" 1))
-              (make-match-result
-               "(test-1)/(test-4)/(test-6)/(something.scm)"
-               1))
+               (make-match-result "(test-1)/(test-4)/(test-6)" 1 empty)
+               (make-match-result "(something.scm)" 1 empty))
+              (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)"
+                                 1
+                                 empty))
 
-(check-expect (add-match-results (make-match-result "" 1.0)
-                                 (make-match-result "(README)" 1.0))
+(check-expect (add-match-results (make-match-result "" 1.0 empty)
+                                 (make-match-result "(README)" 1.0 empty))
               
-              (make-match-result "(README)" 1.0))
+              (make-match-result "(README)" 1.0 empty))
 
 (check-expect (add-match-results
-               (make-match-result "test-1/test-4/test-6" 1.0)
-               (make-match-result "(so)mething.scm" 0.1538))
-              (make-match-result "t/t/t/(so)mething.scm" 
-                                 0.1538))
+               (make-match-result "test-1/test-4/test-6" 1.0 empty)
+               (make-match-result "(so)mething.scm" 0.1538 empty))
+              (make-match-result "t/t/t/(so)mething.scm" 0.1538 empty))
 
 
 ;; testing the search with local conditions
@@ -206,38 +211,46 @@
 
 (check-expect (search "test-1/test-4/test-6/something.scm")
               (list
-               (make-match-result
-                "(test-1)/(test-4)/(test-6)/(something.scm)"
-                1)))
+               (make-match-result "(test-1)/(test-4)/(test-6)/(something.scm)"
+                                  1
+                                  empty)))
 
 (check-expect (search "README")
               (list (make-match-result "(README)"
-                                       1)))
+                                       1
+                                       empty)))
 
 (check-expect (search "REAME")
               (list (make-match-result "(REA)D(ME)"
-                                       5/12)))
+                                       5/12
+                                       empty)))
 
 ;; TODO
 (check-expect (search "t/t/bob")
               (list (make-match-result "(t)est-1/(t)est-4/(bob).marley"
-                                       1/20)))
+                                       1/20
+                                       empty)))
 
 (check-expect (search "bob")
-              (list (make-match-result "t/t/(bob).marley"
-                                       0.3)
-                    (make-match-result "t/(bob).java"
-                                       0.375)))
+              (list (make-match-result "t/(bob).java"
+                                       0.375
+                                       empty)
+                    (make-match-result "t/t/(bob).marley"
+                                       0.3
+                                       empty)))
 
 ;; this test is not good because it depends of the compiled file for drscheme
 (check-expect (search "so")
-              (list (make-match-result "c/d/e/dr-fuzzy_(s)cm.z(o)"
-                                       0.06666666666666667) 
-                    (make-match-result "t/t/t/(so)mething.scm"
-                                       0.15384615384615385)))
+              (list (make-match-result "t/t/t/(so)mething.scm"
+                                       0.15384615384615385
+                                       empty)
+                    (make-match-result "c/d/e/dr-fuzzy_(s)cm.z(o)"
+                                       0.06666666666666667
+                                       empty)))
 
 ;; uncomment this to cleanup all the created test files
 ;; in unix 
+
 ;(check-expect (teardown) true)
 
 (test)
