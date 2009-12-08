@@ -69,6 +69,7 @@
                  (display (send list-of-hits ;;here open the file
                                 get-data
                                 (first selected-files)))
+                 (newline)
                  (open-the-selection (rest selected-files)))]))]
     (open-the-selection (send list-of-hits get-selections))))
 

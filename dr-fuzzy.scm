@@ -253,10 +253,10 @@
       (operation-on-path-acc the-path0 initial)))
   
   
-  ;; add-match-results : match-result match-result -> match-result
+  ;; add-match-results : match-result match-result file-path -> match-result
   ;; sums 2 match results. Used to sum the match of the path
   ;; with the match of the file
-  (define (add-match-results match-path match-file)
+  (define (add-match-results match-path match-file (original-file empty))
     (local [;; format-result-path : (listof string) -> string
             ;; receives the path splitted by the separator
             ;; the verifies if the path is enclosed in parens.
@@ -280,7 +280,10 @@
                                       (string (string-ref (first path-parts) 0))
                                       (FILE-SEPARATOR)))]))]
       (cond
-        [(string=? "" (match-result-tagged-path match-path)) match-file]
+        [(string=? "" (match-result-tagged-path match-path))
+         (make-match-result (match-result-tagged-path match-file)
+                            (match-result-score match-file)
+                            original-file)]
         [else
          (make-match-result
           (string-append
@@ -291,7 +294,7 @@
            (match-result-tagged-path match-file))
           (* (match-result-score match-path)
              (match-result-score match-file))
-          empty)])))
+          original-file)])))
   
   
   ;; search : string -> (listof match-result)
@@ -368,7 +371,8 @@
                            (search-all-files
                             (rest files)
                             (cons (add-match-results path-result
-                                                     file-result)
+                                                     file-result
+                                                     (first files))
                                   accumulator))]))]))]))]
       (sort (search-all-files ALL-FILES empty) #:key match-result-score >)))
   
