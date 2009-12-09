@@ -215,8 +215,9 @@
 
 
 ;; testing the search with local conditions
-(check-expect (search "")
-              empty)
+;; all files that don't begin with '.' or end with ~
+;(check-expect (length (search ""))
+;              something)
 
 (check-expect (search "test-1/test-4/test-6/something.scm")
               (list
@@ -281,6 +282,7 @@
                      0.06666666666666667
                      (string->path
                       "./compiled/drscheme/errortrace/dr-fuzzy_scm.zo"))))
+
 
 ;; uncomment this to cleanup all the created test files
 ;; in unix 

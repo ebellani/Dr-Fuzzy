@@ -40,6 +40,12 @@
   ;; false, but "ap" was used, so it is true
   (define-struct run (capture is-inside?) #:mutable)
   
+  ;; maximum number of results. 
+  ;; Used for 2 purposes:
+  ;; Speed. 
+  ;; Visibility.
+  (define MAX-RESULTS 20)
+  
   ;; used to mark a run
   (define LEFT-RUN-MARKER "(")
   (define RIGHT-RUN-MARKER ")")
@@ -341,50 +347,75 @@
                        (regexp-match regexp path)
                        (how-many-directories-up-to path)
                        real-path)]))]))
+       
             
-            (define (search-all-files files accumulator)
+            (define (match-file path-result file name)
               (cond
-                [(empty? files) accumulator]
+                [(empty? file-regexp)
+                 (add-match-results path-result
+                                    (make-match-result (clean-path name)
+                                                       0.0
+                                                       empty)
+                                    file)]
+                [else
+                 (let ([file-result
+                        (build-result (clean-path name)
+                                      file-regexp)])
+                   (cond
+                     [(false? file-result) false]
+                     [else
+                      (add-match-results path-result
+                                         (build-result (clean-path name)
+                                                       file-regexp)
+                                         file)]))]))
+            
+            (define (search-all-files files path-matches full-matches)
+              (cond
+                [(or (empty? files)
+                     (> (length full-matches) MAX-RESULTS)) full-matches]
                 [else
                  (let*-values ([(base name must-be-dir?)
                                 (split-path (first files))]
-                               [(file-result)
-                                (build-result (clean-path name) file-regexp)]
-                               [(path-result)
+                               [(list-of-cached-path-result)
                                 (cond
                                   [(empty? path-regexp)
-                                   (make-match-result (clean-path base)
-                                                      1.0
-                                                      empty)]
-                                  [else
+                                   (list (make-match-result (clean-path base)
+                                                            1.0
+                                                            base))]
+                                  [else (filter
+                                         (λ (result)
+                                           (equal? base
+                                                   (match-result-path result)))
+                                         path-matches)])]
+                               [(path-result)
+                                (cond
+                                  [(empty? list-of-cached-path-result)
                                    (build-result (clean-path base)
-                                                 path-regexp)])])
+                                                 path-regexp
+                                                 base)]
+                                  [else (first list-of-cached-path-result)])])
                    (cond
-                     [(and (not (empty? path-regexp))
-                           (not (false? path-result))
-                           (empty? file-regexp))
-                      (search-all-files
-                       (rest files)
-                       (cons (add-match-results path-result
-                                                (make-match-result
-                                                 (clean-path name)
-                                                 0.0
-                                                 empty)
-                                                (first files))
-                             accumulator))]
-                     [(and (not (false? path-result))
-                           (not (empty? file-regexp))
-                           (not (false? file-result)))
-                      (search-all-files
-                       (rest files)
-                       (cons (add-match-results path-result
-                                                file-result
-                                                (first files))
-                             accumulator))]
-                     [else (search-all-files (rest files)
-                                             accumulator)]))]))]
-      (sort (search-all-files ALL-FILES empty) #:key match-result-score >)))
-  
+                     [(false? path-result)
+                      (search-all-files (rest files)
+                                        path-matches
+                                        full-matches)]
+                     [else
+                      (let ([file-result (match-file path-result
+                                                     (first files)
+                                                     name)])
+                        (cond
+                          [(false? file-result)
+                           (search-all-files (rest files)
+                                             (cons path-result path-matches)
+                                             full-matches)]
+                          [else
+                           (search-all-files (rest files)
+                                             (cons path-result path-matches)
+                                             (cons file-result
+                                                   full-matches))]))]))]))]
+      (sort (search-all-files ALL-FILES
+                              empty
+                              empty) #:key match-result-score >)))
   
   ;; build-match-result : (listof string) number path-string -> match-result
   ;; given a regexp-match result and the number of directories
@@ -482,6 +513,7 @@
              (string=? "" (first the-match0)))
          (make-match-result "" 1 empty)] ;; pretty sure it is nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
+  
   
   
   (reload-files!))

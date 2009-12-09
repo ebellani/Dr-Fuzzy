@@ -9,11 +9,12 @@
 (define search-field (new text-field%
                           [parent main-dialog]
                           [label "&Search for:"]
-                          [callback (λ (a-text-field event)
-                                      (fill-list-with-search-result
-                                       (send (send a-text-field
-                                                   get-editor)
-                                             get-text)))]))
+                          [callback
+                           (λ (a-text-field event)
+                             (fill-list-with-search-result
+                              (send (send a-text-field
+                                          get-editor)
+                                    get-text)))]))
 
 (define list-of-hits (new list-box%
                           [label "&Results:"]
@@ -55,7 +56,7 @@
                        (match-result-tagged-path (first list-of-match-results))
                        (match-result-path (first list-of-match-results)))
                  (fill (rest list-of-match-results)))]))]
-    (begin (send list-of-hits set empty) ;; clears the list-box
+    (begin (send list-of-hits set empty)
            (fill (search query)))))
 
 ;; open-files : void -> void
@@ -66,7 +67,7 @@
               [(empty? selected-files) (void)]
               [else
                (begin
-                 (display (send list-of-hits ;;here open the file
+                 (display (send list-of-hits ;;here open the files
                                 get-data
                                 (first selected-files)))
                  (newline)
