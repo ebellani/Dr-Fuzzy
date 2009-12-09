@@ -155,25 +155,34 @@
 
 ;; TESTS FOR build-match-result
 ;; 3 states being tested, empty, one file, file nested
-(check-expect (build-match-result empty 0)
+(check-expect (build-match-result empty 0 empty)
               (make-match-result "" 1 empty))
 
 (check-expect (build-match-result
-               (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
-              (make-match-result "(LIC)ENSE.txt" 3/11 empty))
+               (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt")
+               0
+               (string->path "./LICENSE.TXT"))
+              (make-match-result "(LIC)ENSE.txt"
+                                 3/11
+                                 (string->path "./LICENSE.TXT")))
 
 
 (check-expect (build-match-result
                (list "compiled/drscheme/errortrace/"
                      "" "c" "" "o" "mpiled/" "d" "rscheme/" "e" "rrortrace")
-               2)
+               2
+               (string->path "./ANYTHING"))
               (make-match-result "(co)mpiled/(d)rscheme/(e)rrortrace"
                                  2/13
-                                 empty))
+                                 (string->path "./ANYTHING")))
 
 (check-expect (build-match-result
-               (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt") 0)
-              (make-match-result "(LIC)ENSE.txt" 3/11 empty))
+               (list "LICENSE.txt" "" "L" "" "I" "" "C" "ENSE.txt")
+               0
+               (string->path "./another/thing"))
+              (make-match-result "(LIC)ENSE.txt"
+                                 3/11
+                                 (string->path "./another/thing")))
 
 
 ;; adding match results
@@ -243,6 +252,23 @@
                      "t/t/(bob).marley"
                      0.3
                      (string->path "./test-1/test-4/bob.marley"))))
+
+(check-expect (search "test-1")
+              empty)
+
+(check-expect (search "test-1/")
+              (list (make-match-result
+                     "(test-1)/t/t/something.scm"
+                     0.0
+                     (string->path "./test-1/test-4/test-6/something.scm"))
+                    (make-match-result
+                     "(test-1)/t/bob.marley"
+                     0.0
+                     (string->path "./test-1/test-4/bob.marley"))
+                    (make-match-result
+                     "(test-1)/example.txt"
+                     0.0
+                     (string->path "./test-1/example.txt"))))
 
 ; this test is not good because it depends of the compiled file for drscheme
 (check-expect (search "so")

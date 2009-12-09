@@ -324,10 +324,10 @@
                      [else
                       (build-file-regex (path->string filename))]))]))
             
-            ;; build-result : string regexp -> match-result or false
+            ;; build-result : string regexp path-string -> match-result or false
             ;; creates the result for the given path. Returns false if
             ;; there is no match
-            (define (build-result path regexp)
+            (define (build-result path regexp (real-path empty))
               (cond
                 [(or (string=? path "")
                      (empty? path)
@@ -339,7 +339,8 @@
                      [else
                       (build-match-result
                        (regexp-match regexp path)
-                       (how-many-directories-up-to path))]))]))
+                       (how-many-directories-up-to path)
+                       real-path)]))]))
             
             (define (search-all-files files accumulator)
               (cond
@@ -347,6 +348,8 @@
                 [else
                  (let*-values ([(base name must-be-dir?)
                                 (split-path (first files))]
+                               [(file-result)
+                                (build-result (clean-path name) file-regexp)]
                                [(path-result)
                                 (cond
                                   [(empty? path-regexp)
@@ -357,29 +360,36 @@
                                    (build-result (clean-path base)
                                                  path-regexp)])])
                    (cond
-                     [(false? path-result)
-                      (search-all-files (rest files)
-                                        accumulator)]
-                     [else
-                      (let ([file-result
-                             (build-result (clean-path name) file-regexp)])
-                        (cond
-                          [(false? file-result)
-                           (search-all-files (rest files)
-                                             accumulator)]
-                          [else
-                           (search-all-files
-                            (rest files)
-                            (cons (add-match-results path-result
-                                                     file-result
-                                                     (first files))
-                                  accumulator))]))]))]))]
+                     [(and (not (empty? path-regexp))
+                           (not (false? path-result))
+                           (empty? file-regexp))
+                      (search-all-files
+                       (rest files)
+                       (cons (add-match-results path-result
+                                                (make-match-result
+                                                 (clean-path name)
+                                                 0.0
+                                                 empty)
+                                                (first files))
+                             accumulator))]
+                     [(and (not (false? path-result))
+                           (not (empty? file-regexp))
+                           (not (false? file-result)))
+                      (search-all-files
+                       (rest files)
+                       (cons (add-match-results path-result
+                                                file-result
+                                                (first files))
+                             accumulator))]
+                     [else (search-all-files (rest files)
+                                             accumulator)]))]))]
       (sort (search-all-files ALL-FILES empty) #:key match-result-score >)))
   
-  ;; build-match-result : (listof string) number -> match-result
+  
+  ;; build-match-result : (listof string) number path-string -> match-result
   ;; given a regexp-match result and the number of directories
   ;; used in the match, constructs a match-result struct.
-  (define (build-match-result the-match0 number-of-folders)
+  (define (build-match-result the-match0 number-of-folders real-path)
     (local [;; analise-match : 
             ;;   (listof string) (listof run) number -> match-result
             ;; accumulates the matched chars and the runs and ultimately 
@@ -456,7 +466,7 @@
                                (add1 number-of-folders))
                   (get-a-ratio (total-chars (first the-match0))
                                matched-chars))
-               empty))
+               real-path))
             
             ;; get-a-ration : number number -> number
             ;; formulates a radio of 2 numbers.
