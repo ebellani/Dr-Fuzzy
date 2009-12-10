@@ -44,7 +44,14 @@
   ;; Used for 2 purposes:
   ;; Speed. 
   ;; Visibility.
-  (define MAX-RESULTS 20)
+  (define MAX-RESULTS 30)
+  
+  ;; maximum ammount of files that are allowed
+  ;; to be parsed. Here to avoid long delays.
+  (define MAX-FILES 5000)
+  
+  (define max-files-error-msg
+    (format "Sorry, but there are more than ~a files in the current directory and its subdirectories." MAX-FILES))
   
   ;; used to mark a run
   (define LEFT-RUN-MARKER "(")
@@ -91,9 +98,12 @@
   ;; setting the ALL-FILES var to contain
   ;; all files in the current dir and below
   (define (reload-files!)
-    (set! ALL-FILES (all-files "./")))
+    (cond
+      [(empty? ALL-FILES)
+       (set! ALL-FILES (all-files "./"))]
+      [else (void)]))
   
-  ;; all-files : path-string -> (listof path-string)                    
+  ;; all-files : path-string -> (vectorof path-string)                    
   ;; fetches all the files in all the directories, starting with the root
   ;; passed. 
   (define (all-files (root-directory (current-directory)))
@@ -125,15 +135,19 @@
             ;; all-files-in-directories : 
             ;;   (listof path-string) -> (listof path-string)
             ;; retrieves all the files in a list of directories
-            (define (all-files-in-directories directories)
+            (define (all-files-in-directories directories files-so-far)
               (cond
-                [(empty? directories) empty]
+                [(empty? directories) files-so-far]
+                [(> (length files-so-far) MAX-FILES)
+                 (error max-files-error-msg)]
                 [else
-                 (append (all-files (first directories))
-                         (all-files-in-directories (rest directories)))]))]
+                 (all-files-in-directories
+                  (rest directories)
+                  (append files-so-far
+                          (all-files (first directories))))]))]
       
-      (append (files root-directory)
-              (all-files-in-directories (subdirectories root-directory)))))
+      (all-files-in-directories (subdirectories root-directory)
+                                (files root-directory))))
   
   
   ;; ignored? : file-path -> boolean
@@ -512,8 +526,8 @@
              (false? the-match0)
              (string=? "" (first the-match0)))
          (make-match-result "" 1 empty)] ;; pretty sure it is nothing
-        [else (analise-match (rest the-match0) empty 0 1)])))
+        [else (analise-match (rest the-match0) empty 0 1)]))))
   
   
   
-  (reload-files!))
+  ;(reload-files!)

@@ -1,11 +1,12 @@
 #lang scheme
 
-(require "./dr-fuzzy.scm")
+(require "dr-fuzzy.scm")
 (require test-engine/scheme-tests)
 (require scheme/system)
 
 ;; builds up a fake enviroment for testing purposes
-;;
+;; UNCOMMENT THE reload-files! in the dr-fuzzy file
+;; to enable the tests
 (define test-directories (list (build-path "./test-1/")
                                (build-path "./test-2/")
                                (build-path "./test-3/")
@@ -271,22 +272,10 @@
                      0.0
                      (string->path "./test-1/example.txt"))))
 
-; this test is not good because it depends of the compiled file for drscheme
-(check-expect (search "so")
-              (list (make-match-result
-                     "t/t/t/(so)mething.scm"
-                     0.15384615384615385
-                     (string->path "./test-1/test-4/test-6/something.scm"))
-                    (make-match-result
-                     "c/d/e/dr-fuzzy_(s)cm.z(o)"
-                     0.06666666666666667
-                     (string->path
-                      "./compiled/drscheme/errortrace/dr-fuzzy_scm.zo"))))
-
 
 ;; uncomment this to cleanup all the created test files
 ;; in unix 
 
-;(check-expect (teardown) true)
+(check-expect (teardown) true)
 
 (test)
