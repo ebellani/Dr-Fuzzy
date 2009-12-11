@@ -4,7 +4,7 @@
 (define homepage "http://github.com/ebellani/Dr-Fuzzy")
 (define version "1.0")
 
-(define release-notes '((p "First version. Supports opening multiple tabs.")))
+(define release-notes '((p "First version. Should support opening multiple tabs.")))
 
 ;; copied from divascheme info.ss
 
