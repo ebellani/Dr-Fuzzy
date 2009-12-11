@@ -1,12 +1,12 @@
 #lang scheme/base
 (require drscheme/tool
          mred
-         mrlib/switchable-button
          mzlib/unit
          scheme/class
          "dr-fuzzy-gui.scm")
 
 (provide tool@)
+
 
 (define tool@
   (unit
@@ -29,6 +29,5 @@
                 (lambda (menu-item control-event)
                   (start-drfuzzy))]))
         
-        (super-new))
-      )
+        (super-new)))
     (drscheme:get/extend:extend-unit-frame dr-fuzzy-unit-frame-mixim)))

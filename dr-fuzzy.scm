@@ -51,7 +51,8 @@
   (define MAX-FILES 5000)
   
   (define max-files-error-msg
-    (format "Sorry, but there are more than ~a files in the current directory and its subdirectories." MAX-FILES))
+    (format "Sorry, but there are more than ~a files in the\n current directory and its subdirectories."
+            MAX-FILES))
   
   ;; used to mark a run
   (define LEFT-RUN-MARKER "(")

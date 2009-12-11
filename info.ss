@@ -17,8 +17,9 @@
 (define tool-urls (list #f))
 
 ;; don't compile the test or the project tabs ;)
-(define compile-omit-paths (list "dr-fuzzy-test.scm"
-                                 "saved-tabs-file.sp"))
+;; "saved-tabs-file.sp"
+(define compile-omit-paths (list "dr-fuzzy-test.scm"))
 
 (define required-core-version "4.0")
 (define repositories '("4.x"))
+(define tool-icons (list "fuzzy.jpg"))

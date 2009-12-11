@@ -1,5 +1,4 @@
 (module dr-fuzzy-gui scheme/gui
-  (provide start-drfuzzy)
   
   (require "dr-fuzzy.scm")
   
@@ -69,10 +68,10 @@
                 [(empty? selected-files) (void)]
                 [else
                  (begin
-                   (display (send list-of-hits ;;here open the files
-                                  get-data
-                                  (first selected-files)))
-                   (newline)
+                   (display ;;HERE SHOULD OPEN A TAB
+                    (path->string (send list-of-hits
+                                        get-data
+                                        (first selected-files))))
                    (open-the-selection (rest selected-files)))]))]
       (open-the-selection (send list-of-hits get-selections))))
   
@@ -84,14 +83,31 @@
            (send (send search-field
                        get-editor)
                  erase)))
-
+  
+  ;; popup-message : string -> void
+  ;; little dialog to show the error message
+  (define (popup-message message)
+    (begin
+      (define message-dialog (new dialog%
+                                  [label "DrFuzzy"]))
+      (new message%
+           [parent message-dialog]
+           [label message])
+      (new button% [parent message-dialog]
+           [label "&Ok"]
+           [callback (lambda (button event)
+                       (send message-dialog show #f))])
+      (send message-dialog show #t)))
+  
   ;; fails if there is more than a fixed ammount of files
   ;; in the current dir
   (define (start-drfuzzy)
     (with-handlers ((exn:fail?
                      (λ (exception)
-                       (display (exn-message exception)))))
+                       (popup-message (exn-message exception)))))
       (begin
         (clean-all)
         (reload-files!)
-        (send main-dialog show #t)))))
+        (send main-dialog show #t))))
+  
+  (provide start-drfuzzy))
