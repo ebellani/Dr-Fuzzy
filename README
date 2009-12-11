@@ -1,6 +1,17 @@
 This is an implementation of a gedit snap-open kind of thing for DrScheme.
-I'm using Jamis Buck fuzzy finder[1] as a base for the internal library,
+I'm using Jamis Buck fuzzy finder[1] (which itself was written as a substitution
+for the cmd-T function of TextMate) as a base for the internal library,
 and the snap open for a GUI template.
+
+The usage is pretty simple, just type the name of the file you want in the
+text field and you are good to go.
+
+If your file is inside a directory, you could just type the first letter of the
+directory. 
+Ex: your file is in ./test1/test2/file
+So you can find it by typing file, or, t/t/file or test1/t/file. 
+I encourage all to try different combinations.
+
 
 The picture is taken from [2].
 
