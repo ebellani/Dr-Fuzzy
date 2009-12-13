@@ -30,10 +30,9 @@
                 (lambda (menu-item control-event)
                   (start-drfuzzy))]))
         
-        (super-new)))
-    (drscheme:get/extend:extend-unit-frame dr-fuzzy-unit-frame-mixim)))
-
-  (define main-dialog (new dialog%
+        (super-new)
+        
+        (define main-dialog (new dialog%
                            [label "DrFuzzy"]
                            [width 500]
                            [height 400]))
@@ -141,4 +140,9 @@
         (clean-all)
         (reload-files!)
         (send main-dialog show #t))))
+        
+        ))
+    (drscheme:get/extend:extend-unit-frame dr-fuzzy-unit-frame-mixim)))
+
+  
   
