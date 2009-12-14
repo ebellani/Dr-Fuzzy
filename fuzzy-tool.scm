@@ -110,10 +110,10 @@
     (send list-of-hits set empty))
   
   (define (clean-all)
-    (begin (clean-list)
-           (send (send search-field
+    (begin (send (send search-field
                        get-editor)
-                 erase)))
+                 erase)
+           (clean-list)))
   
   ;; popup-message : string -> void
   ;; little dialog to show the error message
@@ -139,10 +139,8 @@
       (begin
         (clean-all)
         (reload-files!)
-        (send main-dialog show #t))))
-        
-        ))
+        (send main-dialog show #t))))))
     (drscheme:get/extend:extend-unit-frame dr-fuzzy-unit-frame-mixim)))
 
-  
-  
+
+
