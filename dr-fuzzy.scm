@@ -6,6 +6,7 @@
            build-match-result
            make-match-result
            reload-files!
+           load-files!
            ignored?
            how-many-directories-up-to
            search
@@ -94,15 +95,21 @@
   ;; all files. Use reload if something changed
   (define ALL-FILES empty)
   
-  ;; reload-files! : void -> void
+  ;; load-files! : void -> void
   ;; use this for the side effect of
   ;; setting the ALL-FILES var to contain
-  ;; all files in the current dir and below
-  (define (reload-files!)
+  ;; all files in the current dir and below.
+  ;; If the files are already loaded, do nothing.
+  (define (load-files!)
     (cond
       [(empty? ALL-FILES)
        (set! ALL-FILES (all-files "./"))]
       [else (void)]))
+  
+  ;; reload-files! : void -> void
+  ;; force reload of all files.
+  (define (reload-files!)
+    (set! ALL-FILES (all-files "./")))
   
   ;; all-files : path-string -> (vectorof path-string)                    
   ;; fetches all the files in all the directories, starting with the root
@@ -362,7 +369,7 @@
                        (regexp-match regexp path)
                        (how-many-directories-up-to path)
                        real-path)]))]))
-       
+            
             
             (define (match-file path-result file name)
               (cond
@@ -528,7 +535,7 @@
              (string=? "" (first the-match0)))
          (make-match-result "" 1 empty)] ;; pretty sure it is nothing
         [else (analise-match (rest the-match0) empty 0 1)]))))
-  
-  
-  
-  ;(reload-files!)
+
+
+
+;(reload-files!)

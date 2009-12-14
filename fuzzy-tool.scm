@@ -138,7 +138,8 @@
                        (popup-message (exn-message exception)))))
       (begin
         (clean-all)
-        (reload-files!)
+        (load-files!)
+        (fill-list-with-search-result "")
         (send main-dialog show #t))))))
     (drscheme:get/extend:extend-unit-frame dr-fuzzy-unit-frame-mixim)))
 

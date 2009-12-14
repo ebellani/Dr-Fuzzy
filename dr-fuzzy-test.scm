@@ -5,7 +5,7 @@
 (require scheme/system)
 
 ;; builds up a fake enviroment for testing purposes
-;; UNCOMMENT THE reload-files! in the dr-fuzzy file
+;; UNCOMMENT the reload-files! in the dr-fuzzy file
 ;; to enable the tests
 (define test-directories (list (build-path "./test-1/")
                                (build-path "./test-2/")
@@ -257,6 +257,11 @@
 
 (check-expect (search "test-1")
               empty)
+
+;; TODO : ESCAPE THE "."
+;; NOT WORKING
+;(check-expect (search "dr.scm")
+;              empty)
 
 (check-expect (search "test-1/")
               (list (make-match-result
