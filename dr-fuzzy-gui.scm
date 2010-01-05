@@ -83,8 +83,7 @@
                                         (begin (open-files)
                                                (send main-dialog show #f)))
                                       (lambda (button event)
-                                        (begin (open-files)
-                                               (send main-dialog show #f)))))]
+                                        (send main-dialog show #f))))]
       (begin 
         (clean-all)
         (fill-list-with-search-result "")
