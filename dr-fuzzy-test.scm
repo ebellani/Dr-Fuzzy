@@ -93,12 +93,23 @@
 (check-expect (build-file-regex "foo")
               "(?i:^(.*?)(f)([^/]*?)(o)([^/]*?)(o)(.*)$)")
 
+(check-expect (build-file-regex ".foo")
+              "(?i:^(.*?)(\\.)([^/]*?)(f)([^/]*?)(o)([^/]*?)(o)(.*)$)")
+
 (check-expect (make-pattern "")
               "()")
 
 (check-expect (make-pattern "foo")
               "(f)([^/]*?)(o)([^/]*?)(o)")
 
+;; escaping for regexp
+(check-expect (escape-for-regexp "foo")
+              "foo")
+
+(check-expect (escape-for-regexp "\\")
+              "\\\\")
+(check-expect (escape-for-regexp "|")
+              "\\|")
 
 ;; tests for finding the number of directories
 (check-expect (how-many-directories-up-to
@@ -217,8 +228,7 @@
 
 ;; testing the search with local conditions
 ;; all files that don't begin with '.' or end with ~
-;(check-expect (length (search ""))
-;              something)
+
 
 (check-expect (search "test-1/test-4/test-6/something.scm")
               (list
@@ -258,13 +268,7 @@
 (check-expect (search "test-1")
               empty)
 
-;; TODO : ESCAPE THE "."
-;; NOT WORKING
-(check-expect (search "fuzzy-gu.scm")
-              (make-match-result
-               "dr-(fuzzy-gu)i(.scm)"
-               1/4
-               (string->path "./dr-fuzzy.scm")))
+
 
 (check-expect (search "test-1/")
               (list (make-match-result
@@ -280,6 +284,14 @@
                      0.0
                      (string->path "./test-1/example.txt"))))
 
+
+;; I think the problem is with the regexp generation
+(check-expect (search "fuzzy-gu.scm")
+              (list
+               (make-match-result
+                "dr-(fuzzy-gu)i(.scm)"
+                3/8
+                (string->path "./dr-fuzzy-gui.scm"))))
 
 ;; uncomment this to cleanup all the created test files
 ;; in unix 

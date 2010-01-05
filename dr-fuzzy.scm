@@ -1,5 +1,6 @@
 (module dr-fuzzy scheme
   (provide all-files
+           escape-for-regexp
            make-pattern
            build-path-parts-regex
            build-file-regex
@@ -54,6 +55,10 @@
   (define max-files-error-msg
     (format "Sorry, but there are more than ~a files in the\n current directory and its subdirectories."
             MAX-FILES))
+  
+  ;; all regexp chars
+  (define REGEXP-SPECIAL-PARTS
+    '("." "*" "+" "?" "|" "(" ")" "[" "]" "{" "}" "\\"))
   
   ;; used to mark a run
   (define LEFT-RUN-MARKER "(")
@@ -209,7 +214,7 @@
   (define (make-pattern pattern)
     (local [(define (build-piece-of-patter piece)
               (string-append LEFT-PATTERN-MARKER
-                             piece
+                             (escape-for-regexp piece)
                              RIGHT-PATTERN-MARKER))
             (define (build-the-pattern splitted-pattern accumulator)
               (cond
@@ -225,6 +230,18 @@
                                                    IN-BETWEEN-PATTERN))]))]
       (build-the-pattern (regexp-split (regexp "") pattern)
                          "")))
+  
+  ;; escape-for-regexp : string -> string
+  ;; escapes with \\ all the chars --> .*+?|()[]{}\ <--
+  ;; that could be used for a regexp.
+  (define (escape-for-regexp the-string)
+    (cond
+      [(not (false? (member the-string
+                            REGEXP-SPECIAL-PARTS)))
+       (string-append "\\" the-string)]
+      [else the-string]))
+  
+  
   
   ;; path->list : path-string -> (listof string)
   ;; transform a file path in a list representing it.
@@ -391,7 +408,7 @@
                                                        file-regexp)
                                          file)]))]))
             
-            (define (search-all-files files path-matches full-matches)
+            (define (search-all-files files path-matches full-matches)              
               (cond
                 [(or (empty? files)
                      (> (length full-matches) MAX-RESULTS)) full-matches]
@@ -435,6 +452,7 @@
                                              (cons path-result path-matches)
                                              (cons file-result
                                                    full-matches))]))]))]))]
+      ;      (display file-regexp)
       (sort (search-all-files ALL-FILES
                               empty
                               empty) #:key match-result-score >)))
@@ -536,6 +554,3 @@
          (make-match-result "" 1 empty)] ;; pretty sure it is nothing
         [else (analise-match (rest the-match0) empty 0 1)])))
   (reload-files!))
-
-
-
