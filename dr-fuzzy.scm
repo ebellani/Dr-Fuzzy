@@ -534,8 +534,8 @@
              (false? the-match0)
              (string=? "" (first the-match0)))
          (make-match-result "" 1 empty)] ;; pretty sure it is nothing
-        [else (analise-match (rest the-match0) empty 0 1)]))))
+        [else (analise-match (rest the-match0) empty 0 1)])))
+  (reload-files!))
 
 
 
-;(reload-files!)

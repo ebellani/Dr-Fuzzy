@@ -260,8 +260,11 @@
 
 ;; TODO : ESCAPE THE "."
 ;; NOT WORKING
-;(check-expect (search "dr.scm")
-;              empty)
+(check-expect (search "fuzzy-gu.scm")
+              (make-match-result
+               "dr-(fuzzy-gu)i(.scm)"
+               1/4
+               (string->path "./dr-fuzzy.scm")))
 
 (check-expect (search "test-1/")
               (list (make-match-result
@@ -281,6 +284,6 @@
 ;; uncomment this to cleanup all the created test files
 ;; in unix 
 
-(check-expect (teardown) true)
+;(check-expect (teardown) true)
 
 (test)
