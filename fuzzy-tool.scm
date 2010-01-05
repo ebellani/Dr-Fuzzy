@@ -4,9 +4,8 @@
          mred
          mzlib/unit
          scheme/class
-         "dr-fuzzy.scm")
-
-(require "dr-fuzzy-gui.scm")
+         "dr-fuzzy.scm"
+         "dr-fuzzy-gui.scm")
 
 (provide tool@)
 

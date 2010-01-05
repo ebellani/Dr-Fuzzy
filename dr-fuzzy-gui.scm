@@ -94,21 +94,6 @@
         (fill-list-with-search-result "")
         (send main-dialog show #t))))
   
-  ;; popup-message : string -> void
-  ;; little dialog to show the error message
-  (define (popup-message message)
-    (begin
-      (define message-dialog (new dialog%
-                                  [label "DrFuzzy"]))
-      (new message%
-           [parent message-dialog]
-           [label message])
-      (new button% [parent message-dialog]
-           [label "&Ok"]
-           [callback (lambda (button event)
-                       (send message-dialog show #f))])
-      (send message-dialog show #t)))
-  
   ;; fails if there is more than a fixed ammount of files
   ;; in the current dir. Uses a function with each file
   ;; selected in the dialog
@@ -116,7 +101,10 @@
   (define (start-drfuzzy do-with-files)
     (with-handlers ((exn:fail?
                      (λ (exception)
-                       (popup-message (exn-message exception)))))
+                       (message-box "Error starting dr-fuzzy"
+                                    (exn-message exception)
+                                    #f
+                                    '(ok stop)))))
       (begin
         (load-files!)
         (create-dr-fuzzy-dialog do-with-files)))))

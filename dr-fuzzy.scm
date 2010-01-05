@@ -50,11 +50,13 @@
   
   ;; maximum ammount of files that are allowed
   ;; to be parsed. Here to avoid long delays.
-  (define MAX-FILES 5000)
+  (define MAX-FILES 10000)
   
   (define max-files-error-msg
-    (format "Sorry, but there are more than ~a files in the\n current directory and its subdirectories."
-            MAX-FILES))
+    (format
+     "Sorry, but there are more than ~a files in the 
+      current directory and its subdirectories."
+     MAX-FILES))
   
   ;; all regexp chars
   (define REGEXP-SPECIAL-PARTS
@@ -552,5 +554,5 @@
              (false? the-match0)
              (string=? "" (first the-match0)))
          (make-match-result "" 1 empty)] ;; pretty sure it is nothing
-        [else (analise-match (rest the-match0) empty 0 1)])))
-  (reload-files!))
+        [else (analise-match (rest the-match0) empty 0 1)]))))
+;;  (reload-files!))
