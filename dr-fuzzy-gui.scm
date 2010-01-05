@@ -1,7 +1,8 @@
 (module dr-fuzzy-gui scheme/gui
   (provide start-drfuzzy)
   
-  (require "dr-fuzzy.scm")
+  (require "dr-fuzzy.scm"
+           framework/gui-utils)
   
   (define (create-dr-fuzzy-dialog function-to-use-with-files)
     (local
@@ -64,6 +65,7 @@
                                                  get-editor)
                                            get-text)))]))
        
+       
        (define list-of-hits (new list-box%
                                  [label "&Results:"]
                                  [choices empty]
@@ -75,21 +77,15 @@
                           [alignment '(right bottom)]
                           [stretchable-height #f]))
        
-       (define cancel-button
-         (new button% [parent panel]
-              [label "&Cancel"]
-              [callback (lambda (button event)
-                          (send main-dialog show #f))]))
-       
-       (define ok-button
-         (new button% [parent panel]
-              [label "&Ok"]
-              [callback (lambda (button event)
-                          (begin (open-files)
-                                 (send main-dialog show #f)))]))]
+       (define-values (button-ok button-cancel)
+         (gui-utils:ok/cancel-buttons panel
+                                      (lambda (button event)
+                                        (begin (open-files)
+                                               (send main-dialog show #f)))
+                                      (lambda (button event)
+                                        (begin (open-files)
+                                               (send main-dialog show #f)))))]
       (begin 
-        (when (system-position-ok-before-cancel?)
-          (send panel change-children reverse))
         (clean-all)
         (fill-list-with-search-result "")
         (send main-dialog show #t))))
