@@ -86,7 +86,7 @@
                                         (send main-dialog show #f))))]
       (begin 
         (clean-all)
-        (fill-list-with-search-result "")
+        (send search-field focus)
         (send main-dialog show #t))))
   
   ;; fails if there is more than a fixed ammount of files
