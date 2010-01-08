@@ -2,12 +2,10 @@
 (define name "DrFuzzy")
 (define blurb '("Quick find files to open inside DrScheme."))
 (define homepage "http://github.com/ebellani/Dr-Fuzzy")
-(define version "1.1")
+(define version "1.2")
 
 (define release-notes
-  '((p "Second release.")
-    (p "Fixed the a bug involving a file with a char that was used in regexp.") 
-    (p "Minor improvements in the GUI.")))
+  '((p "Documentation added.")))
 
 (define primary-file "fuzzy-tool.scm")
 (define categories '(devtools))

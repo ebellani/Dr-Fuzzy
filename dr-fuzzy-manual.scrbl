@@ -1,4 +1,4 @@
-#lang scribble/doc
+#lang scribble/manual
 
 @title{DrFuzzy file finder}
 
@@ -7,18 +7,15 @@ This is the documentation for the DrFuzzy tool.
 
 @section{Installation}
 
-Run this inside DrScheme
+Go to
+@link["http://planet.plt-scheme.org/display.ss?package=dr-fuzzy.plt&owner=ebellani"
+"the package page"] copy the line after the "To load:" label and run it under
+DrScheme. 
 
-@(require scribble/manual
-          scribble/eval
-          (for-label scheme 
-                     (planet "fuzzy-tool.scm"
-                             ("ebellani" "dr-fuzzy.plt" 1 1))))
-Wait for the indication that the process is over. A new instance of
-DrScheme will be open. In this instance a menu called "DrFuzzy file finder" will
-now be available under the "File" menu, right below the "Install .plt file". You
-can start using this DrScheme instance or just close all instances and open a
-new one.
+
+Wait for the indication that the process is over. Restart Drscheme to see that a
+menu called "DrFuzzy file finder" will now be available under the "File" menu,
+right below the "Install .plt file".  You can now use DrFuzzy at will.
 
 @section{Usage}
 
@@ -34,10 +31,10 @@ character typed in the "Search" input field will activate the search. The list
 field allows for multiple file selections, so you can CTRL-click to open several
 files.
 
-An overall description is that hits in the filename are worth more to DrFuzzy
-than in the directory names. To explictly search for something inside
-directories, you have 2 ways. Either you type the directory name, or its first
-letter followed by a separator.
+An overall description is that hits in the filename are worth (appear on top of
+the file list) more to DrFuzzy than in the directory names. To explictly search
+for something inside directories, you have 2 ways. Either you type the directory
+name, or its first letter followed by a separator.
 
 For example, imagine that you have those files in an UNIX system:
 @verbatim{
@@ -62,4 +59,3 @@ To match exactly to that file you would type
 "a/dir2/scheme-file.scm".
 
 To check the contents of dir you could type "d/" or "dir/".
-
