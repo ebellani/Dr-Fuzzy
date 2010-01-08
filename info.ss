@@ -1,6 +1,6 @@
 #lang setup/infotab
 (define name "DrFuzzy")
-(define blurb '("Quick find files to open inside DrScheme."))
+(define blurb '("Quick file finder/opener for DrScheme."))
 (define homepage "http://github.com/ebellani/Dr-Fuzzy")
 (define version "1.2")
 
