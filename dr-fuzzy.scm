@@ -343,6 +343,26 @@
              (match-result-score match-file))
           original-file)])))
   
+;  (define COUNTER 0)
+  
+  ;; build-result : string regexp path-string -> match-result or false
+  ;; creates the result for the given path. Returns false if
+  ;; there is no match
+  (define (build-result path regexp (real-path empty))
+    (cond
+      [(or (string=? path "")
+           (empty? path)
+           (empty? regexp)) false]
+      [else
+       (let ([the-match (regexp-match regexp path)])
+         (cond
+           [(false? the-match) false]
+           [else
+            (build-match-result
+             (regexp-match regexp path)
+             (how-many-directories-up-to path)
+             real-path)]))]))  
+  
   
   ;; search : string -> (listof match-result)
   ;; given a search query returns a list of match results that is
@@ -371,24 +391,8 @@
                      [else
                       (build-file-regex (path->string filename))]))]))
             
-            ;; build-result : string regexp path-string -> match-result or false
-            ;; creates the result for the given path. Returns false if
-            ;; there is no match
-            (define (build-result path regexp (real-path empty))
-              (cond
-                [(or (string=? path "")
-                     (empty? path)
-                     (empty? regexp)) false]
-                [else
-                 (let ([the-match (regexp-match regexp path)])
-                   (cond
-                     [(false? the-match) false]
-                     [else
-                      (build-match-result
-                       (regexp-match regexp path)
-                       (how-many-directories-up-to path)
-                       real-path)]))]))
-            
+            ;; match-file : match-result path-string path-string -> 
+            ;;              match-result or false
             
             (define (match-file path-result file name)
               (cond
@@ -405,10 +409,7 @@
                    (cond
                      [(false? file-result) false]
                      [else
-                      (add-match-results path-result
-                                         (build-result (clean-path name)
-                                                       file-regexp)
-                                         file)]))]))
+                      (add-match-results path-result file-result file)]))]))
             
             (define (search-all-files files path-matches full-matches)              
               (cond
@@ -454,7 +455,6 @@
                                              (cons path-result path-matches)
                                              (cons file-result
                                                    full-matches))]))]))]))]
-      ;      (display file-regexp)
       (sort (search-all-files ALL-FILES
                               empty
                               empty) #:key match-result-score >)))
@@ -553,6 +553,6 @@
         [(or (empty? the-match0)
              (false? the-match0)
              (string=? "" (first the-match0)))
-         (make-match-result "" 1 empty)] ;; pretty sure it is nothing
+         (make-match-result "" 1 empty)]
         [else (analise-match (rest the-match0) empty 0 1)]))))
-;;  (reload-files!))
+;  (reload-files!)
